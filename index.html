@@ -1937,6 +1937,11 @@ function startRest() {
   setMsg('存活成功', 2200, '#22c55e');
   Audio.beep({ freq:660, type:'sine', duration:0.15, volume:0.25 });
   setTimeout(()=>Audio.beep({ freq:990, type:'sine', duration:0.2, volume:0.25 }), 160);
+  // 有待选增援时强调提示
+  if (allianceState.pendingPicks > 0) {
+    pickPromptEl.classList.add('emphasize');
+    setTimeout(() => pickPromptEl.classList.remove('emphasize'), 2000);
+  }
   // Boss 门提示（仅第一次休整期展示时才提示）
   if (gameState.bossGateSpawned && !gameState.bossPhase && !gameState._bossGateFirstShown) {
     gameState._bossGateFirstShown = true;
@@ -1999,9 +2004,9 @@ function startNextWave() {
 const ALLIANCE = {
   // 三条战术技能链
   tactical: [
-    { id:'barrage', name:'榴弹轰炸', icon:'💣', key:'4', color:'#fb923c', cd:12, baseDmg:3,
+    { id:'barrage', name:'榴弹轰炸', icon:'💣', key:'4', color:'#fb923c', cd:8, baseDmg:3, passive:true,
       tiers: [
-        { desc:'爆炸产生燃烧地面(2m)，50%攻击力/秒，持续5s', golden:false },
+        { desc:'获得战术轰炸被动：10m内每8s自动轰炸一个敌人(4m范围)', golden:false },
         { desc:'索敌范围+50%', golden:false },
         { desc:'被轰炸敌人受到20%额外伤害，5s', golden:false },
         { desc:'弹头数量翻倍', golden:true },
@@ -2295,8 +2300,9 @@ function renderSkillBar() {
     const isReady = sk && cd <= 0;
     slot.className = 'sk-slot' + (sk ? ' active' : '') + (isReady ? ' ready' : '') + (isGolden ? ' golden' : '');
     if (sk) {
+      const isPassive = chain.passive;
       slot.innerHTML = `
-        <div class="sk-key">[${keyLabel}]</div>
+        ${isPassive ? '<div class="sk-key" style="color:#fb923c;">被动</div>' : `<div class="sk-key">[${keyLabel}]</div>`}
         <div class="sk-icon">${chain.icon}</div>
         <div class="sk-name">${chain.name} ${tier}</div>
         ${cd > 0 ? `<div class="sk-cd-overlay">${Math.ceil(cd)}s</div>` : ''}
@@ -2325,8 +2331,9 @@ function useSkill(slotIdx) {
   if (placeState.active) { cancelPlace(); return; }
 
   const chain = ALLIANCE.tactical[slotIdx];
-  // 榴弹(0) 和 毁灭者(1) 进入放置模式，哨卫(2) 直接释放
-  if (slotIdx === 0 || slotIdx === 1) {
+  // 榴弹(0)是被动技能不需要手动释放，毁灭者(1)进入放置模式，哨卫(2)直接释放
+  if (chain.passive) return; // 被动技能不可手动触发
+  if (slotIdx === 1) {
     enterPlaceMode(slotIdx);
   } else {
     executeSkill(slotIdx);
@@ -2909,11 +2916,50 @@ function tickSkillCooldowns(dt) {
       allianceState.skillCd[i] -= dt;
       if (allianceState.skillCd[i] <= 0) {
         allianceState.skillCd[i] = 0;
-        // 技能就绪音效
-        Audio.beep({ freq:660, type:'sine', duration:0.06, volume:0.12 });
+        // 非被动技能就绪音效
+        if (!ALLIANCE.tactical[i].passive && allianceState.skills[i]) {
+          Audio.beep({ freq:660, type:'sine', duration:0.06, volume:0.12 });
+        }
       }
     }
   }
+  // 榴弹轰炸被动自动触发
+  tickPassiveBarrage(dt);
+}
+
+let _barragePassiveTimer = 0;
+function tickPassiveBarrage(dt) {
+  const sk = allianceState.skills[0]; // 榴弹轰炸 = 索引0
+  if (!sk) return; // 未获得
+  const tier = allianceState.skillTier[0];
+  if (tier <= 0) return;
+  const chain = ALLIANCE.tactical[0];
+  const interval = Math.max(3, chain.cd - tier * 0.5); // 随等级加快
+  _barragePassiveTimer += dt;
+  if (_barragePassiveTimer < interval) return;
+  _barragePassiveTimer = 0;
+
+  // 在玩家周围 10m 内找最近的敌人
+  const detectRange = 10 + tier * 2; // 随等级增加探测范围
+  let closest = null, closestDist = detectRange;
+  enemies.forEach(e => {
+    if (!e.userData.alive) return;
+    const d = e.position.distanceTo(player.pos);
+    if (d < closestDist) { closestDist = d; closest = e; }
+  });
+  if (!closest) return;
+
+  // 在目标位置丢下轰炸
+  const targetPos = closest.position.clone();
+  targetPos.y = 0.5;
+  const dmg = chain.baseDmg * tier * allianceState.skillDmgMul * upgrades.dmgMul;
+  const isGolden = chain.tiers[tier-1]?.golden;
+  const color = isGolden ? 0xfde047 : parseInt(chain.color.replace('#',''), 16);
+  const radius = 8 + tier * 1; // 8m 基础半径，随等级增加
+  spawnBarrage(targetPos, color, radius, dmg, isGolden, tier);
+
+  // 冷却显示（用于 HUD）
+  allianceState.skillCd[0] = interval;
 }
 
 
@@ -3107,6 +3153,7 @@ function startGame() {
   weaponSkillCd = [0, 0, 0];
   weaponSkillActive = [0, 0, 0];
   resetAllianceState();
+  _barragePassiveTimer = 0;
   renderSkillBar();
   renderPickButton();
   // 重置 Boss 门
@@ -3140,6 +3187,10 @@ function startInitialRest() {
   gameState.restTimer = CONFIG.restDuration;
   restEl.classList.add('show');
   updateRestUI();
+  if (allianceState.pendingPicks > 0) {
+    pickPromptEl.classList.add('emphasize');
+    setTimeout(() => pickPromptEl.classList.remove('emphasize'), 2000);
+  }
 }
 function gameOver() {
   // 阶段一可复活

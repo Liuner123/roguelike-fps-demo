@@ -12,8 +12,8 @@
   /* HUD */
   #hud { position:fixed; top:12px; left:12px; z-index:10;
     background:rgba(0,0,0,0.45); padding:10px 14px; border-radius:10px;
-    font-size:14px; line-height:1.7; backdrop-filter:blur(6px);
-    border:1px solid rgba(255,255,255,0.08); min-width:180px; }
+    font-size:13px; line-height:1.7; backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.08); min-width:160px; max-width:185px; }
   #hud b { color:#67e8f9; }
   #hud .gold { color:#fbbf24; }
   #hud .hp { color:#f87171; }
@@ -46,7 +46,7 @@
     background:linear-gradient(90deg,#ef4444,#fde047); }
 
   /* 雷达 */
-  #radar { position:fixed; top:12px; left:220px; z-index:10;
+  #radar { position:fixed; top:12px; left:210px; z-index:10;
     background:rgba(0,0,0,0.55); border-radius:50%;
     border:2px solid rgba(103,232,249,0.5);
     box-shadow:0 0 18px rgba(103,232,249,0.25); }
@@ -103,6 +103,31 @@
   .wslot .name { font-weight:bold; color:#fff; font-size:12px; }
   .wslot .key { font-size:10px; color:#94a3b8; }
   .wslot .cost { font-size:10px; color:#fbbf24; }
+
+  /* 武器技能菱形按钮 → 武器栏左侧横排 */
+  #weaponSkills { position:fixed; bottom:24px; right:362px;
+    z-index:10; display:flex; gap:10px; align-items:center; }
+  .ws-diamond { width:48px; height:48px; position:relative; cursor:pointer;
+    transform:rotate(45deg); transition:all .15s; }
+  .ws-diamond-inner { position:absolute; inset:3px; border-radius:6px;
+    background:rgba(0,0,0,0.6); border:2px solid rgba(255,255,255,0.15);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; transition:all .15s; }
+  .ws-diamond.ready .ws-diamond-inner { border-color:rgba(103,232,249,0.6);
+    box-shadow:0 0 12px rgba(103,232,249,0.3); }
+  .ws-diamond.active-skill .ws-diamond-inner { border-color:#fde047;
+    box-shadow:0 0 16px rgba(253,224,71,0.5);
+    background:rgba(253,224,71,0.15); }
+  .ws-diamond:hover .ws-diamond-inner { border-color:#67e8f9; transform:scale(1.05); }
+  .ws-diamond .ws-content { transform:rotate(-45deg); text-align:center;
+    font-size:10px; color:#fff; line-height:1.2; pointer-events:none; }
+  .ws-diamond .ws-icon { font-size:16px; }
+  .ws-diamond .ws-key { font-size:8px; color:#94a3b8; }
+  .ws-diamond .ws-cd { position:absolute; inset:3px; border-radius:6px;
+    background:rgba(0,0,0,0.65); display:flex; align-items:center;
+    justify-content:center; }
+  .ws-diamond .ws-cd span { transform:rotate(-45deg); font-size:14px;
+    font-weight:bold; color:#fff; }
 
   /* 当前武器详情（右下，武器栏之上） */
   #weaponInfo { position:fixed; right:18px; bottom:88px; z-index:10;
@@ -332,23 +357,23 @@
     transform:translate(-50%,-50%); font-size:12px; color:#fff;
     font-weight:bold; text-shadow:0 0 4px rgba(0,0,0,0.9); }
 
-  /* 联盟增援选取面板 - 右侧悬浮，不阻挡游戏 */
-  #alliancePick { position:fixed; top:80px; right:18px; bottom:80px; z-index:36; display:none;
-    flex-direction:column; align-items:flex-end; justify-content:center;
+  /* 联盟增援选取面板 - 屏幕居中，不阻挡游戏 */
+  #alliancePick { position:fixed; inset:0; z-index:36; display:none;
+    align-items:center; justify-content:center;
     pointer-events:none; }
   #alliancePick.show { display:flex; }
-  .ap-inner { text-align:center; max-width:260px; width:260px; pointer-events:auto;
-    background:rgba(15,23,42,0.85); border:1px solid rgba(103,232,249,0.2);
-    border-radius:14px; padding:16px; backdrop-filter:blur(8px); }
-  .ap-title { font-size:18px; font-weight:bold; letter-spacing:3px;
+  .ap-inner { text-align:center; max-width:800px; width:92vw; pointer-events:auto;
+    background:rgba(15,23,42,0.8); border:1px solid rgba(103,232,249,0.2);
+    border-radius:14px; padding:20px 24px; backdrop-filter:blur(8px); }
+  .ap-title { font-size:28px; font-weight:bold; letter-spacing:4px;
     background:linear-gradient(90deg,#67e8f9,#a78bfa,#fbbf24);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    text-shadow:none; margin-bottom:4px; }
-  .ap-sub { color:#94a3b8; font-size:12px; margin-bottom:12px; }
-  .ap-cards { display:flex; gap:10px; flex-direction:column; }
+    text-shadow:none; margin-bottom:6px; }
+  .ap-sub { color:#94a3b8; font-size:14px; margin-bottom:20px; }
+  .ap-cards { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
 
-  .ap-card { background:#1e293b; border:2px solid #334155; border-radius:10px;
-    padding:12px 10px; cursor:pointer; transition:all .2s;
+  .ap-card { background:#1e293b; border:2px solid #334155; border-radius:14px;
+    padding:18px 16px; width:220px; cursor:pointer; transition:all .2s;
     position:relative; overflow:hidden; text-align:left; }
   .ap-card:hover { border-color:#67e8f9; transform:translateY(-4px);
     box-shadow:0 8px 30px rgba(103,232,249,0.25); }
@@ -569,6 +594,10 @@
         <input type="checkbox" id="cfgClearAllEnabled">
       </div>
       <div class="settings-row">
+        <label>无敌模式</label>
+        <input type="checkbox" id="cfgGodMode">
+      </div>
+      <div class="settings-row">
         <label>清怪按键</label>
         <button class="keybind-btn" id="kbClearAll" data-cfg="clearAllKey">鼠标中键</button>
       </div>
@@ -586,6 +615,7 @@
 </div>
 
 <div id="weapons"></div>
+<div id="weaponSkills"></div>
 <div id="crosshair"></div>
 <div id="msg"></div>
 <div id="stageIntro">
@@ -728,6 +758,7 @@ const CONFIG = {
   // —— 一键清怪 —— 
   clearAllEnabled: true,  // 是否启用一键清怪
   clearAllKey: 'Mouse1',  // 默认鼠标中键（Mouse1 = button 1 = 中键）
+  godMode: false,         // 无敌模式
 };
 
 /* ================= 基础场景 ================= */
@@ -1203,6 +1234,37 @@ function renderWeaponBar() {
     weaponsEl.appendChild(div);
   });
 }
+const weaponSkillsEl = document.getElementById('weaponSkills');
+function renderWeaponSkills() {
+  weaponSkillsEl.innerHTML = '';
+  // 始终显示两把枪的技能（索引0=步枪，1=霰弹枪）
+  for (let wi = 0; wi < 2; wi++) {
+    const w = WEAPONS[wi];
+    if (!w || !w.skillName) continue;
+    const cd = weaponSkillCd[wi];
+    const active = weaponSkillActive[wi] > 0;
+    const ready = cd <= 0;
+    const keyCode = wi === 0 ? CONFIG.weaponSkillKey1 : CONFIG.weaponSkillKey2;
+    const keyLabel = keyCodeToLabel(keyCode);
+    const color = wi === 0 ? '#fde047' : '#fb923c';
+
+    const diamond = document.createElement('div');
+    diamond.className = 'ws-diamond' + (ready ? ' ready' : '') + (active ? ' active-skill' : '');
+    diamond.style.setProperty('--ws-color', color);
+    if (ready) diamond.querySelector?.('.ws-diamond-inner')?.style;
+    diamond.innerHTML = `
+      <div class="ws-diamond-inner" style="${ready ? `border-color:${color};box-shadow:0 0 12px ${color}40;` : ''}${active ? `border-color:#fde047;box-shadow:0 0 16px rgba(253,224,71,0.5);background:rgba(253,224,71,0.15);` : ''}">
+        <div class="ws-content">
+          <div class="ws-icon">${wi === 0 ? '⚡' : '💥'}</div>
+          <div class="ws-key">[${keyLabel}]</div>
+        </div>
+        ${cd > 0 ? `<div class="ws-cd"><span>${Math.ceil(cd)}</span></div>` : ''}
+      </div>
+    `;
+    diamond.onclick = () => useWeaponSkill(wi);
+    weaponSkillsEl.appendChild(diamond);
+  }
+}
 function selectWeapon(i) {
   if (i >= WEAPONS.length || !WEAPONS[i].unlocked) return;
   currentWeapon = i;
@@ -1210,12 +1272,14 @@ function selectWeapon(i) {
   renderWeaponBar();
 }
 
-function useWeaponSkill() {
+function useWeaponSkill(forceIdx) {
   if (!gameState.running) return;
-  const wi = currentWeapon;
+  const wi = forceIdx !== undefined ? forceIdx : currentWeapon;
   const w = WEAPONS[wi];
-  if (!w.skillName) return; // 近战没有技能
+  if (!w || !w.skillName) return; // 近战没有技能
   if (weaponSkillCd[wi] > 0) return;
+  // 自动切换到对应武器
+  if (currentWeapon !== wi) selectWeapon(wi);
   weaponSkillCd[wi] = w.skillCd;
   const totalDmgMul = upgrades.dmgMul * (1 + allianceState.gunDmgBonus);
 
@@ -1561,8 +1625,8 @@ document.addEventListener('mousedown', (e) => {
     if (CONFIG.skillKey2 === mouseCode) useSkill(1);
     if (CONFIG.skillKey3 === mouseCode) useSkill(2);
     if (CONFIG.clearAllKey === mouseCode) clearAllEnemies();
-    if (CONFIG.weaponSkillKey1 === mouseCode && currentWeapon === 0) useWeaponSkill();
-    if (CONFIG.weaponSkillKey2 === mouseCode && currentWeapon === 1) useWeaponSkill();
+    if (CONFIG.weaponSkillKey1 === mouseCode) useWeaponSkill(0);
+    if (CONFIG.weaponSkillKey2 === mouseCode) useWeaponSkill(1);
   }
 });
 document.addEventListener('mouseup', (e) => {
@@ -1598,9 +1662,9 @@ function _handleKeyDown(e) {
   if (e.code === 'Digit1') selectWeapon(0);
   if (e.code === 'Digit2') selectWeapon(1);
   if (e.code === 'Digit3') selectWeapon(2);
-  // 武器技能键（可配置，仅对当前持枪生效）
-  if (e.code === CONFIG.weaponSkillKey1 && currentWeapon === 0) useWeaponSkill();
-  if (e.code === CONFIG.weaponSkillKey2 && currentWeapon === 1) useWeaponSkill();
+  // 武器技能键（可配置，固定对应武器）
+  if (e.code === CONFIG.weaponSkillKey1) useWeaponSkill(0);
+  if (e.code === CONFIG.weaponSkillKey2) useWeaponSkill(1);
   // 技能键（可配置）
   if (e.code === CONFIG.skillKey1) useSkill(0);
   if (e.code === CONFIG.skillKey2) useSkill(1);
@@ -2111,7 +2175,8 @@ function showAlliancePick() {
   if (allianceState.pendingPicks <= 0) return;
   const opts = buildPickOptions();
   if (opts.length === 0) { allianceState.pendingPicks = 0; renderPickButton(); return; }
-  // 不暂停游戏，不退出指针锁定，角色可继续移动
+  // 不暂停游戏，但退出指针锁定以便鼠标点击卡片（键盘仍可移动）
+  if (document.pointerLockElement) document.exitPointerLock();
   apCardsEl.innerHTML = '';
   opts.forEach(opt => {
     const card = document.createElement('div');
@@ -2207,6 +2272,7 @@ pickPromptEl.addEventListener('click', () => {
 
 function renderSkillBar() {
   skillBarEl.innerHTML = '';
+  // 联盟技能按钮
   for (let i=0; i<3; i++) {
     const sk = allianceState.skills[i];
     const tier = allianceState.skillTier[i];
@@ -3267,6 +3333,12 @@ function update(dt) {
     const reach = 0.9 + e.userData.size*0.4 + player.radius;
     const distToPlayer = e.position.distanceTo(player.pos);
     if (distToPlayer < reach) {
+      // 无敌模式：不受伤害，仅消灭敌人
+      if (CONFIG.godMode) {
+        explode(e.position, e.userData.isBoss);
+        scene.remove(e); enemies.splice(i,1);
+        continue;
+      }
       const rawDmg = e.userData.isBoss ? 30 : (e.userData.type==='tank'?20:10);
       // 护盾优先吸收伤害
       let dmgToHp = rawDmg;
@@ -3377,6 +3449,7 @@ function update(dt) {
   updateBossGate(dt);
   updateFPWeapon(dt);
   renderSkillBar();
+  renderWeaponSkills();
   drawRadar();
   refreshHUD();
 }
@@ -3662,6 +3735,7 @@ function initSettings() {
   bindNumber('cfgRestDur',   'restDuration');
   bindNumber('cfgRadar',     'radarRange');
   bindCheckbox('cfgClearAllEnabled', 'clearAllEnabled');
+  bindCheckbox('cfgGodMode', 'godMode');
 
   // 技能键位映射
   initKeybinds();
@@ -3707,6 +3781,7 @@ function initSettings() {
     document.getElementById('cfgRestDur').value = CONFIG.restDuration;
     document.getElementById('cfgRadar').value = CONFIG.radarRange;
     document.getElementById('cfgClearAllEnabled').checked = !!CONFIG.clearAllEnabled;
+    document.getElementById('cfgGodMode').checked = !!CONFIG.godMode;
     document.getElementById('kbClearAll').textContent = keyCodeToLabel(CONFIG.clearAllKey);
     document.getElementById('kbWS1').textContent = keyCodeToLabel(CONFIG.weaponSkillKey1);
     document.getElementById('kbWS2').textContent = keyCodeToLabel(CONFIG.weaponSkillKey2);

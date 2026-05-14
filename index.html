@@ -242,6 +242,16 @@
   #crosshair::before { left:10px; top:0; width:2px; height:22px; }
   #crosshair::after { top:10px; left:0; height:2px; width:22px; }
 
+  /* 怪物血条（挂载在头顶） */
+  #enemyHpBars { position:fixed; inset:0; z-index:11; pointer-events:none; }
+  .ehp-bar { position:absolute; text-align:center; transform:translate(-50%,-100%); }
+  .ehp-track { width:60px; height:5px; background:rgba(0,0,0,0.7);
+    border-radius:3px; overflow:hidden; border:1px solid rgba(255,255,255,0.12); }
+  .ehp-fill { height:100%; width:100%; background:#ef4444;
+    border-radius:3px; transition:width .1s ease-out; }
+  .ehp-bar.boss .ehp-track { width:100px; height:7px; }
+  .ehp-bar.boss .ehp-fill { background:#a855f7; }
+
   /* 提示信息 */
   #msg { position:fixed; left:50%; top:28%; transform:translate(-50%,-50%);
     font-size:48px; color:#fbbf24; text-shadow:0 0 18px rgba(251,191,36,0.6);
@@ -625,6 +635,7 @@
 <div id="weapons"></div>
 <div id="weaponSkills"></div>
 <div id="crosshair"></div>
+<div id="enemyHpBars"></div>
 <div id="msg"></div>
 <div id="stageIntro">
   <div class="stage-phase" id="stagePhase">阶段一</div>
@@ -775,11 +786,11 @@ scene.background = new THREE.Color(0x0b1020);
 scene.fog = new THREE.Fog(0x0b1020, 35, 100);
 
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 200);
-camera.position.set(0, 1.7, 0);
+camera.position.set(8, 1.7, 8);
 
 /* ========= 玩家（第一人称） ========= */
 const player = {
-  pos: new THREE.Vector3(0, 1.7, 0),
+  pos: new THREE.Vector3(8, 1.7, 8),
   vel: new THREE.Vector3(0, 0, 0),
   radius: 0.45,
   height: 1.7,
@@ -896,13 +907,30 @@ const spawnGlow = new THREE.PointLight(0x67e8f9, 0.8, 12);
 spawnGlow.position.set(0, 0.5, 0);
 scene.add(spawnGlow);
 
-// 竞技场内掩体（中央区域低矮石柱）
+// 竞技场内掩体（中央区域低矮石柱 + 十字墙体）
 const pillarMat = new THREE.MeshStandardMaterial({ color:0x6b5b4f, roughness:0.7 });
+const wallInnerMat = new THREE.MeshStandardMaterial({ color:0x5c4a3d, roughness:0.6 });
+
+// 中央十字矮墙（不可穿越）
+const centerWalls = [
+  { x:0, z:0, w:12, h:2.2, d:1.2 },   // 东西向
+  { x:0, z:0, w:1.2, h:2.2, d:12 },   // 南北向
+];
+centerWalls.forEach(cw => {
+  const geo = new THREE.BoxGeometry(cw.w, cw.h, cw.d);
+  const mesh = new THREE.Mesh(geo, wallInnerMat);
+  mesh.position.set(cw.x, cw.h/2, cw.z);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  scene.add(mesh);
+  terrainObjs.push(mesh);
+});
+
+// 外围石柱
 const pillarPositions = [
-  { x:-10, z:0, r:1.2, h:2 }, { x:10, z:0, r:1.2, h:2 },
-  { x:0, z:-10, r:1.2, h:2 }, { x:0, z:10, r:1.2, h:2 },
-  { x:-7, z:-7, r:0.8, h:1.5 }, { x:7, z:-7, r:0.8, h:1.5 },
-  { x:-7, z:7, r:0.8, h:1.5 }, { x:7, z:7, r:0.8, h:1.5 },
+  { x:-18, z:0, r:1.2, h:2.5 }, { x:18, z:0, r:1.2, h:2.5 },
+  { x:0, z:-18, r:1.2, h:2.5 }, { x:0, z:18, r:1.2, h:2.5 },
+  { x:-13, z:-13, r:0.9, h:2 }, { x:13, z:-13, r:0.9, h:2 },
+  { x:-13, z:13, r:0.9, h:2 }, { x:13, z:13, r:0.9, h:2 },
 ];
 pillarPositions.forEach(p => {
   const geo = new THREE.CylinderGeometry(p.r, p.r * 1.1, p.h, 12);
@@ -1532,26 +1560,93 @@ function explode(pos, big=false) {
 const enemies = [];
 
 const ENEMY_TYPES = {
-  grunt: { color:0xef4444, size:1, hp:1, speed:2.85, gold:5, score:10, fly:false },
-  fast:  { color:0xf472b6, size:0.7, hp:1, speed:5.1, gold:7, score:14, fly:false },
-  flyer: { color:0xa78bfa, size:0.8, hp:1, speed:3.3, gold:9, score:18, fly:true },
-  tank:  { color:0x78716c, size:1.6, hp:6, speed:1.5, gold:20, score:35, fly:false },
-  boss:  { color:0xdc2626, size:3.0, hp:50, speed:1.35, gold:120, score:200, fly:false, isBoss:true },
+  grunt: { color:0xef4444, size:1, hp:1, speed:5.7, gold:5, score:10, fly:false },
+  fast:  { color:0xf472b6, size:0.5, hp:1, speed:15, gold:7, score:14, fly:false },
+  flyer: { color:0xa78bfa, size:0.8, hp:1, speed:6.6, gold:9, score:18, fly:true },
+  tank:  { color:0x78716c, size:2.0, hp:6, speed:3.0, gold:20, score:35, fly:false },
+  boss:  { color:0xdc2626, size:3.0, hp:50, speed:2.7, gold:120, score:200, fly:false, isBoss:true },
 };
 
 function spawnEnemy(typeKey, levelBonus=1) {
   const type = ENEMY_TYPES[typeKey];
-  const geo = new THREE.BoxGeometry(type.size, type.size, type.size);
+  // 使用 Group 来组合模型部件
+  const e = new THREE.Group();
+  // 主体
+  const bodyGeo = new THREE.BoxGeometry(type.size, type.size, type.size);
   const mat = new THREE.MeshStandardMaterial({
     color:type.color, emissive:type.color, emissiveIntensity:0.4, roughness:0.5
   });
-  const e = new THREE.Mesh(geo, mat);
+  const body = new THREE.Mesh(bodyGeo, mat);
+  e.add(body);
+  // 给 Group 添加 material 引用（兼容 damageEnemy 闪烁）
+  e.material = mat;
+
+  // === 视觉特征 ===
+  if (typeKey === 'fast') {
+    // 突击兵：流线型尖头 + 速度拖尾光
+    const spike = new THREE.Mesh(
+      new THREE.ConeGeometry(type.size*0.3, type.size*0.6, 4),
+      new THREE.MeshStandardMaterial({ color:0xf472b6, emissive:0xf472b6, emissiveIntensity:0.8 })
+    );
+    spike.position.z = -type.size*0.5;
+    spike.rotation.x = -Math.PI/2;
+    e.add(spike);
+    // 速度线
+    const trail = new THREE.PointLight(0xf472b6, 0.5, 3);
+    trail.position.z = type.size*0.4;
+    e.add(trail);
+  } else if (typeKey === 'flyer') {
+    // 飞行兵：两对翅膀
+    for (let side of [-1, 1]) {
+      const wing = new THREE.Mesh(
+        new THREE.BoxGeometry(type.size*0.8, 0.05, type.size*0.5),
+        new THREE.MeshStandardMaterial({ color:0xc4b5fd, emissive:0xa78bfa, emissiveIntensity:0.6, transparent:true, opacity:0.7 })
+      );
+      wing.position.set(side * type.size*0.6, type.size*0.1, 0);
+      wing.rotation.z = side * 0.3;
+      wing.userData._wing = true;
+      wing.userData._side = side;
+      e.add(wing);
+    }
+    // 底部推进器光
+    const thruster = new THREE.PointLight(0xa78bfa, 0.8, 4);
+    thruster.position.y = -type.size*0.4;
+    e.add(thruster);
+  } else if (typeKey === 'tank') {
+    // 重装兵：前置护盾 + 肩甲
+    const shieldGeo = new THREE.PlaneGeometry(type.size*1.2, type.size*1.0);
+    const shieldMat = new THREE.MeshStandardMaterial({
+      color:0x60a5fa, emissive:0x3b82f6, emissiveIntensity:0.5,
+      transparent:true, opacity:0.4, side:THREE.DoubleSide
+    });
+    const shield = new THREE.Mesh(shieldGeo, shieldMat);
+    shield.position.z = -type.size*0.6;
+    e.add(shield);
+    // 肩甲
+    for (let side of [-1, 1]) {
+      const pad = new THREE.Mesh(
+        new THREE.BoxGeometry(type.size*0.3, type.size*0.4, type.size*0.5),
+        new THREE.MeshStandardMaterial({ color:0x525252, metalness:0.6, roughness:0.3 })
+      );
+      pad.position.set(side * type.size*0.55, type.size*0.2, 0);
+      e.add(pad);
+    }
+  } else if (typeKey === 'grunt') {
+    // 步兵：头顶小角
+    const horn = new THREE.Mesh(
+      new THREE.ConeGeometry(type.size*0.15, type.size*0.3, 4),
+      new THREE.MeshStandardMaterial({ color:0xfca5a5, emissive:0xef4444, emissiveIntensity:0.6 })
+    );
+    horn.position.y = type.size*0.6;
+    e.add(horn);
+  }
+
   e.castShadow = true;
   // 从4个出怪口之一随机生成
   const gateIdx = Math.floor(Math.random() * GATE_COUNT);
   const gateAngle = gateAngles[gateIdx];
-  const spawnR = ARENA_RADIUS - 1; // 刚好在墙内
-  const spread = (Math.random() - 0.5) * (GATE_WIDTH / ARENA_RADIUS) * 0.8; // 出怪口宽度内随机
+  const spawnR = ARENA_RADIUS - 1;
+  const spread = (Math.random() - 0.5) * (GATE_WIDTH / ARENA_RADIUS) * 0.8;
   const angle = gateAngle + spread;
   const y = type.fly ? 4 + Math.random()*3 : type.size/2;
   e.position.set(Math.cos(angle)*spawnR, y, Math.sin(angle)*spawnR);
@@ -1575,6 +1670,8 @@ function damageEnemy(e, dmg) {
   if (!e.userData || !e.userData.alive) return;
   // Tier 3 榴弹标记：受到20%额外伤害
   if (e.userData._barrageMark > 0) dmg *= 1.2;
+  // Boss 护盾：减少50%伤害
+  if (e.userData._shieldActive) dmg *= 0.5;
   e.userData.hp -= dmg;
   e.material.emissiveIntensity = 1.5;
   setTimeout(()=>{ if (e.material) e.material.emissiveIntensity = 0.4; }, 80);
@@ -1591,8 +1688,8 @@ function killEnemy(e) {
   gameState.score += e.userData.score;
   const goldGain = Math.floor(e.userData.gold * allianceState.goldMul);
   gameState.gold += goldGain;
-  // 经验：以分数为权重，受增益影响
-  const expGain = Math.max(1, Math.floor(e.userData.score * 0.6 * allianceState.expMul));
+  // 经验：以分数为权重，受增益影响（减半）
+  const expGain = Math.max(1, Math.floor(e.userData.score * 0.3 * allianceState.expMul));
   addExp(expGain);
   showFloat(`+${goldGain}金 +${expGain}EXP`, '#fbbf24');
   Audio.kill(); Audio.coin();
@@ -2018,6 +2115,7 @@ function endRest() {
   // Boss 阶段休整结束 → 生成 Boss
   if (gameState._spawnBossAfterRest) {
     gameState._spawnBossAfterRest = false;
+    restEl.classList.remove('show'); // 隐藏休整期UI
     setMsg('💀 BOSS 降临！', 2000, '#ef4444');
     Audio.wave();
     setTimeout(spawnFinalBoss, 1500);
@@ -2766,13 +2864,13 @@ function updateTurrets(dt) {
 
 /* ================= 榴弹轰炸：空袭表现 ================= */
 function spawnBarrage(pos, color, radius, dmg, isGolden, tier) {
+  const barrageTier = allianceState.skillTier[0]; // 当前榴弹tier
   // 1. 地面标记（目标圈）
   const markerGeo = new THREE.RingGeometry(radius - 0.3, radius, 48);
   const markerMat = new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.6, side:THREE.DoubleSide });
   const marker = new THREE.Mesh(markerGeo, markerMat);
   marker.rotation.x = -Math.PI/2; marker.position.copy(pos); marker.position.y = 0.04;
   scene.add(marker);
-  // 标记闪烁
   let mt = 0;
   const markerAnim = () => {
     mt += 0.05;
@@ -2782,12 +2880,11 @@ function spawnBarrage(pos, color, radius, dmg, isGolden, tier) {
   };
   markerAnim();
 
-  // 2. 延迟后天降炸弹（多颗）
+  // 2. 天降炸弹
   const bombCount = isGolden ? 5 : 3;
-  const bombDelay = 0.6; // 标记出现后 0.6s 开始落弹
+  const bombDelay = 0.6;
   for (let b = 0; b < bombCount; b++) {
     setTimeout(() => {
-      // 炸弹从天空落下
       const offset = new THREE.Vector3((Math.random()-0.5)*radius*0.6, 0, (Math.random()-0.5)*radius*0.6);
       const bombPos = pos.clone().add(offset);
       const bombMesh = new THREE.Mesh(
@@ -2796,23 +2893,32 @@ function spawnBarrage(pos, color, radius, dmg, isGolden, tier) {
       );
       bombMesh.position.set(bombPos.x, 25 + Math.random()*5, bombPos.z);
       scene.add(bombMesh);
-      // 拖尾光
       const trail = new THREE.PointLight(color, 2, 8);
       bombMesh.add(trail);
 
-      let fallT = 0;
       const fallAnim = () => {
-        fallT += 0.04;
         bombMesh.position.y -= 1.5;
         if (bombMesh.position.y <= 0.5) {
           scene.remove(bombMesh);
-          // 着地爆炸
           spawnSkillExplosion(bombPos, color, radius * 0.5, isGolden);
-          // AOE 伤害
+          const bombDmg = dmg / bombCount;
           enemies.slice().forEach(e => {
             const d = e.position.distanceTo(bombPos);
-            if (d < radius) damageEnemy(e, dmg / bombCount * (1 - d/radius));
+            if (d < radius) damageEnemy(e, bombDmg * (1 - d/radius));
           });
+          // Tier 8: 每个弹头爆炸后分裂成4个弹片
+          if (barrageTier >= 8) {
+            for (let s = 0; s < 4; s++) {
+              const sOffset = new THREE.Vector3((Math.random()-0.5)*radius*0.8, 0, (Math.random()-0.5)*radius*0.8);
+              const sPos = bombPos.clone().add(sOffset);
+              setTimeout(() => {
+                spawnSkillExplosion(sPos, color, radius * 0.2, false);
+                enemies.slice().forEach(e => {
+                  if (e.position.distanceTo(sPos) < radius * 0.35) damageEnemy(e, bombDmg * 0.5);
+                });
+              }, 100 + s * 80);
+            }
+          }
         } else {
           requestAnimationFrame(fallAnim);
         }
@@ -2821,7 +2927,6 @@ function spawnBarrage(pos, color, radius, dmg, isGolden, tier) {
     }, (bombDelay + b * 0.2) * 1000);
   }
 
-  // 空袭警报音
   Audio.beep({ freq:600, type:'square', duration:0.1, volume:0.2 });
   setTimeout(()=>Audio.beep({ freq:600, type:'square', duration:0.1, volume:0.2 }), 200);
 }
@@ -3106,20 +3211,6 @@ function tickPassiveBarrage(dt) {
   const doubleBombs = tier >= 4;
   spawnBarrage(targetPos, color, radius, dmg, isGolden || doubleBombs, tier);
 
-  // Tier 8: 弹片分裂×4
-  if (tier >= 8) {
-    setTimeout(() => {
-      for (let s = 0; s < 4; s++) {
-        const offset = new THREE.Vector3((Math.random()-0.5)*radius, 0, (Math.random()-0.5)*radius);
-        const subPos = targetPos.clone().add(offset);
-        spawnSkillExplosion(subPos, color, radius * 0.3, false);
-        enemies.slice().forEach(e => {
-          if (e.position.distanceTo(subPos) < radius * 0.4) damageEnemy(e, dmg * 0.5);
-        });
-      }
-    }, 1500);
-  }
-
   // Tier 3: 标记被轰炸敌人，受到20%额外伤害5s
   if (tier >= 3) {
     enemies.forEach(e => {
@@ -3147,7 +3238,7 @@ function buildWaveQueue(wave) {
   if (wave >= CONFIG.bossWave) return [];
   const queue = [];
   // 类吸血鬼幸存者：怪物数量随波次指数级增长
-  const baseCount = 15;
+  const baseCount = 30;
   const growthFactor = 1.22;
   let totalCount = Math.floor(baseCount * Math.pow(growthFactor, wave - 1));
   // 前8波额外增加出怪量
@@ -3201,43 +3292,156 @@ function enterBossPhase() {
 
 function spawnFinalBoss() {
   const bossSize = 5;
-  const bossHp = 500 + gameState.level * 50; // 基于玩家等级缩放
-  const geo = new THREE.BoxGeometry(bossSize, bossSize, bossSize);
+  const bossHp = 500 + gameState.level * 50;
+  const bossGroup = new THREE.Group();
+  // 主体
   const mat = new THREE.MeshStandardMaterial({
     color:0xdc2626, emissive:0xdc2626, emissiveIntensity:0.6, roughness:0.4
   });
-  const boss = new THREE.Mesh(geo, mat);
-  boss.castShadow = true;
-  // 从前方远处出现
-  const fwd = new THREE.Vector3();
-  camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
-  boss.position.set(
-    player.pos.x + fwd.x * 45,
-    bossSize / 2,
-    player.pos.z + fwd.z * 45
+  const body = new THREE.Mesh(new THREE.BoxGeometry(bossSize, bossSize, bossSize), mat);
+  bossGroup.add(body);
+  bossGroup.material = mat; // 兼容 damageEnemy
+  // 双角
+  for (let side of [-1, 1]) {
+    const horn = new THREE.Mesh(
+      new THREE.ConeGeometry(0.5, 2.5, 6),
+      new THREE.MeshStandardMaterial({ color:0x1a1a1a, metalness:0.8 })
+    );
+    horn.position.set(side * 1.5, bossSize*0.5 + 1, -0.5);
+    horn.rotation.x = -0.3;
+    horn.rotation.z = side * 0.2;
+    bossGroup.add(horn);
+  }
+  // 眼睛
+  for (let side of [-1, 1]) {
+    const eye = new THREE.Mesh(
+      new THREE.SphereGeometry(0.35, 8, 8),
+      new THREE.MeshStandardMaterial({ color:0xfde047, emissive:0xfde047, emissiveIntensity:3 })
+    );
+    eye.position.set(side * 1, bossSize*0.15, -bossSize*0.5 - 0.1);
+    bossGroup.add(eye);
+  }
+  // 底部光环
+  const aura = new THREE.Mesh(
+    new THREE.RingGeometry(3, 4.5, 32),
+    new THREE.MeshBasicMaterial({ color:0xef4444, transparent:true, opacity:0.25, side:THREE.DoubleSide })
   );
-  boss.userData = {
-    type: 'finalboss',
-    hp: bossHp,
-    maxHp: bossHp,
-    speed: 1.5,
-    gold: 500,
-    score: 1000,
-    fly: false,
-    isBoss: true,
-    size: bossSize,
-    alive: true,
-  };
-  scene.add(boss);
-  enemies.push(boss);
-  gameState.bossEntity = boss;
+  aura.rotation.x = -Math.PI/2; aura.position.y = 0.05;
+  bossGroup.add(aura);
+  // 周身粒子光
+  const bossLight = new THREE.PointLight(0xef4444, 2, 20);
+  bossLight.position.y = bossSize * 0.3;
+  bossGroup.add(bossLight);
 
-  // 出场光柱
-  spawnSummonBeam(boss.position.clone(), 0xef4444, true);
-  // Boss 大名
+  bossGroup.castShadow = true;
+  bossGroup.position.set(0, bossSize/2, -25); // 竞技场前方
+  bossGroup.userData = {
+    type: 'finalboss',
+    hp: bossHp, maxHp: bossHp,
+    speed: 2.5,
+    gold: 500, score: 1000,
+    fly: false, isBoss: true,
+    size: bossSize, alive: true,
+    // Boss 技能计时器
+    _skillTimer: 0,
+    _skillPhase: 0, // 0=追踪, 1=冲撞, 2=召唤, 3=践踏
+    _chargeDir: null,
+    _chargeTime: 0,
+    _shieldActive: false,
+    _shieldCd: 0,
+  };
+  scene.add(bossGroup);
+  enemies.push(bossGroup);
+  gameState.bossEntity = bossGroup;
+
+  spawnSummonBeam(bossGroup.position.clone(), 0xef4444, true);
   if (ui.bossName) ui.bossName.textContent = '毁灭核心';
   setMsg('💀 毁灭核心 💀', 2000, '#ef4444');
   Audio.noise({ duration:0.8, volume:0.5, filterFreq:400 });
+}
+
+/* ================= Boss 技能 AI ================= */
+function updateBossAI(dt) {
+  const boss = gameState.bossEntity;
+  if (!boss || !boss.userData.alive || !gameState.bossPhase) return;
+  const ud = boss.userData;
+  ud._skillTimer += dt;
+  if (ud._shieldCd > 0) ud._shieldCd -= dt;
+
+  // 每10秒切换技能
+  if (ud._skillTimer > 10) {
+    ud._skillTimer = 0;
+    ud._skillPhase = (ud._skillPhase + 1) % 4;
+    // 血量低于50%时激活护盾
+    if (ud.hp < ud.maxHp * 0.5 && ud._shieldCd <= 0) {
+      ud._shieldActive = true;
+      ud._shieldCd = 30;
+      setMsg('💀 毁灭核心激活护盾！', 1500, '#3b82f6');
+      setTimeout(() => { ud._shieldActive = false; }, 5000);
+    }
+  }
+
+  const phase = ud._skillPhase;
+  if (phase === 1) {
+    // 冲撞：快速冲向玩家
+    if (!ud._chargeDir) {
+      ud._chargeDir = new THREE.Vector3().subVectors(player.pos, boss.position).setY(0).normalize();
+      ud._chargeTime = 1.5;
+      setMsg('💀 冲撞！', 1000, '#ef4444');
+      Audio.beep({ freq:150, type:'sawtooth', duration:0.3, volume:0.3, slideTo:80 });
+    }
+    ud._chargeTime -= dt;
+    boss.position.x += ud._chargeDir.x * 25 * dt;
+    boss.position.z += ud._chargeDir.z * 25 * dt;
+    // 冲撞路径上的伤害
+    if (boss.position.distanceTo(player.pos) < ud.size && !CONFIG.godMode) {
+      gameState.hp -= 20;
+      flashDamage();
+      refreshHUD();
+    }
+    if (ud._chargeTime <= 0) { ud._chargeDir = null; ud._skillPhase = 0; }
+  } else if (phase === 2 && ud._skillTimer < 0.1) {
+    // 召唤小怪
+    setMsg('💀 召唤尸潮！', 1200, '#ef4444');
+    Audio.noise({ duration:0.3, volume:0.3, filterFreq:300 });
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        const angle = Math.random() * Math.PI * 2;
+        const r = 5 + Math.random() * 3;
+        const pos = boss.position.clone();
+        pos.x += Math.cos(angle) * r;
+        pos.z += Math.sin(angle) * r;
+        const types = ['grunt', 'fast', 'grunt'];
+        const tk = types[Math.floor(Math.random() * types.length)];
+        spawnEnemy(tk, 1 + (gameState.wave - 1) * 0.15);
+        // 把生成的怪移到 Boss 附近
+        const spawned = enemies[enemies.length - 1];
+        if (spawned) spawned.position.set(pos.x, spawned.userData.size/2, pos.z);
+      }, i * 200);
+    }
+  } else if (phase === 3 && ud._skillTimer < 0.1) {
+    // AOE 践踏：对周围造成伤害
+    setMsg('💀 践踏！', 1000, '#fb923c');
+    Audio.explosion();
+    spawnSkillExplosion(boss.position.clone(), 0xef4444, 10, true);
+    if (!CONFIG.godMode) {
+      const d = boss.position.distanceTo(player.pos);
+      if (d < 12) {
+        const dmg = Math.floor(25 * (1 - d/12));
+        // 护盾优先
+        let dmgToHp = dmg;
+        if (gameState.shield > 0) {
+          const ab = Math.min(gameState.shield, dmg);
+          gameState.shield -= ab;
+          dmgToHp -= ab;
+        }
+        if (dmgToHp > 0) gameState.hp -= dmgToHp;
+        flashDamage();
+        refreshHUD();
+        if (gameState.hp <= 0) gameOver();
+      }
+    }
+  }
 }
 
 // 重写 killEnemy 来检测 Boss 死亡
@@ -3342,7 +3546,7 @@ function startGame() {
   bossGateActive = false;
   gatePromptEl.style.display = 'none';
   // 重置玩家位置
-  player.pos.set(0, player.eyeHeight, 0);
+  player.pos.set(8, player.eyeHeight, 8);
   player.vel.set(0, 0, 0);
   player.onGround = true;
   yaw = Math.PI; pitch = 0;
@@ -3508,11 +3712,73 @@ function updatePlayer(dt) {
     player.pos.z *= scale;
   }
 
+  // 场景内墙体/掩体碰撞（AABB 简单推开）
+  terrainObjs.forEach(obj => {
+    const box = new THREE.Box3().setFromObject(obj);
+    const px = player.pos.x, pz = player.pos.z, pr = player.radius;
+    // 检测玩家圆柱体是否与 AABB 重叠
+    const cx = Math.max(box.min.x, Math.min(px, box.max.x));
+    const cz = Math.max(box.min.z, Math.min(pz, box.max.z));
+    const dx = px - cx, dz = pz - cz;
+    const dist2 = dx*dx + dz*dz;
+    if (dist2 < pr*pr && dist2 > 0.0001) {
+      const dist = Math.sqrt(dist2);
+      const push = pr - dist;
+      player.pos.x += (dx / dist) * push;
+      player.pos.z += (dz / dist) * push;
+    }
+  });
+
   // 同步到相机
   camera.position.copy(player.pos);
 }
 
 
+
+/* ================= 怪物头顶血条 ================= */
+const enemyHpBarsEl = document.getElementById('enemyHpBars');
+
+function updateEnemyHpBar() {
+  enemyHpBarsEl.innerHTML = '';
+  if (enemies.length === 0) return;
+  // 确保 camera 矩阵是最新的
+  camera.updateMatrixWorld();
+  const halfW = innerWidth / 2, halfH = innerHeight / 2;
+  enemies.forEach(e => {
+    if (!e.userData || !e.userData.alive) return;
+    // 只显示受伤的怪物血条（满血不显示，除非是Boss）
+    if (e.userData.hp >= e.userData.maxHp && !e.userData.isBoss) return;
+    // 3D 坐标投影到屏幕
+    const headPos = new THREE.Vector3().copy(e.position);
+    headPos.y += e.userData.size * 0.6 + 0.3;
+    const projected = headPos.project(camera);
+    // 检查是否在摄像机前方且在屏幕内
+    if (projected.z > 1) return;
+    const sx = (projected.x * halfW) + halfW;
+    const sy = -(projected.y * halfH) + halfH;
+    if (sx < -50 || sx > innerWidth + 50 || sy < -50 || sy > innerHeight + 50) return;
+    const dist = e.position.distanceTo(player.pos);
+    if (dist > 50) return;
+
+    const hp = Math.max(0, e.userData.hp);
+    const pct = hp / e.userData.maxHp * 100;
+
+    const bar = document.createElement('div');
+    const isBoss = e.userData.isBoss;
+    bar.className = 'ehp-bar' + (isBoss ? ' boss' : '');
+    bar.style.left = sx + 'px';
+    bar.style.top = sy + 'px';
+    // Boss 根据距离缩放，普通怪固定大小
+    if (isBoss) {
+      const scale = Math.max(0.6, Math.min(1.5, 10 / dist));
+      bar.style.transform = `translate(-50%,-100%) scale(${scale.toFixed(2)})`;
+    } else {
+      bar.style.transform = 'translate(-50%,-100%)';
+    }
+    bar.innerHTML = `<div class="ehp-track"><div class="ehp-fill" style="width:${pct.toFixed(0)}%"></div></div>`;
+    enemyHpBarsEl.appendChild(bar);
+  });
+}
 
 function update(dt) {
   if (!gameState.running || gameState.paused) return;
@@ -3567,6 +3833,14 @@ function update(dt) {
     const e = enemies[i];
     // 榴弹标记倒计时
     if (e.userData._barrageMark > 0) e.userData._barrageMark -= dt;
+    // 飞行兵翅膀拍打
+    if (e.userData.type === 'flyer') {
+      e.children.forEach(c => {
+        if (c.userData?._wing) {
+          c.rotation.z = c.userData._side * (0.3 + Math.sin(performance.now()*0.01) * 0.25);
+        }
+      });
+    }
     // 追玩家：x/z 跟随玩家，y 看是否飞行
     const targetX = player.pos.x;
     const targetZ = player.pos.z;
@@ -3695,7 +3969,9 @@ function update(dt) {
   updateTurrets(dt);
   updateDrones(dt);
   updateBossGate(dt);
+  updateBossAI(dt);
   updateFPWeapon(dt);
+  updateEnemyHpBar();
   renderSkillBar();
   renderWeaponSkills();
   drawRadar();

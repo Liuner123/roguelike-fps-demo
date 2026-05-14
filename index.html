@@ -775,11 +775,11 @@ scene.background = new THREE.Color(0x0b1020);
 scene.fog = new THREE.Fog(0x0b1020, 35, 100);
 
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 200);
-camera.position.set(6, 1.7, 6);
+camera.position.set(0, 1.7, 0);
 
 /* ========= 玩家（第一人称） ========= */
 const player = {
-  pos: new THREE.Vector3(6, 1.7, 6),
+  pos: new THREE.Vector3(0, 1.7, 0),
   vel: new THREE.Vector3(0, 0, 0),
   radius: 0.45,
   height: 1.7,
@@ -812,17 +812,79 @@ dirLight.shadow.mapSize.set(1024,1024);
 Object.assign(dirLight.shadow.camera, { left:-40, right:40, top:40, bottom:-40 });
 scene.add(dirLight);
 
-/* 地面 + 网格 */
+/* 地面 + 竞技场 */
+const ARENA_RADIUS = 40;
+const WALL_HEIGHT = 6;
+const WALL_THICKNESS = 2;
+const GATE_COUNT = 4; // 4个出怪口
+const GATE_WIDTH = 6; // 出怪口宽度(角度)
+
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(140,140),
-  new THREE.MeshStandardMaterial({ color:0x1e293b, roughness:0.95 })
+  new THREE.CircleGeometry(ARENA_RADIUS + 5, 64),
+  new THREE.MeshStandardMaterial({ color:0x2a1f14, roughness:0.95 })
 );
 ground.rotation.x = -Math.PI/2; ground.receiveShadow = true;
 scene.add(ground);
-const grid = new THREE.GridHelper(140, 70, 0x334155, 0x1e293b);
-grid.position.y = 0.01; scene.add(grid);
+// 竞技场沙地
+const sandGround = new THREE.Mesh(
+  new THREE.CircleGeometry(ARENA_RADIUS - WALL_THICKNESS, 64),
+  new THREE.MeshStandardMaterial({ color:0x3d2b1f, roughness:0.9 })
+);
+sandGround.rotation.x = -Math.PI/2; sandGround.position.y = 0.01; sandGround.receiveShadow = true;
+scene.add(sandGround);
 
-/* 中央装饰：出生点光圈（不可碰撞，无血量） */
+// 环形围墙（分段，留出出怪口）
+const terrainObjs = [];
+const wallMat = new THREE.MeshStandardMaterial({ color:0x5c4033, roughness:0.7 });
+const gateAngles = []; // 出怪口角度
+for (let g = 0; g < GATE_COUNT; g++) {
+  gateAngles.push((g / GATE_COUNT) * Math.PI * 2);
+}
+const wallSegments = 64;
+const segAngle = (Math.PI * 2) / wallSegments;
+for (let s = 0; s < wallSegments; s++) {
+  const a = s * segAngle;
+  const aMid = a + segAngle / 2;
+  // 检查是否在出怪口范围内
+  let isGate = false;
+  const gateHalfAngle = (GATE_WIDTH / ARENA_RADIUS);
+  for (const ga of gateAngles) {
+    let diff = Math.abs(aMid - ga);
+    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+    if (diff < gateHalfAngle) { isGate = true; break; }
+  }
+  if (isGate) continue; // 出怪口不放墙
+
+  const segLen = 2 * ARENA_RADIUS * Math.sin(segAngle / 2);
+  const wallGeo = new THREE.BoxGeometry(segLen + 0.2, WALL_HEIGHT, WALL_THICKNESS);
+  const wall = new THREE.Mesh(wallGeo, wallMat);
+  const wx = Math.cos(aMid) * ARENA_RADIUS;
+  const wz = Math.sin(aMid) * ARENA_RADIUS;
+  wall.position.set(wx, WALL_HEIGHT / 2, wz);
+  wall.rotation.y = -aMid + Math.PI / 2;
+  wall.castShadow = true; wall.receiveShadow = true;
+  scene.add(wall);
+  terrainObjs.push(wall);
+}
+
+// 出怪口标记（红色光柱）
+gateAngles.forEach(a => {
+  const gx = Math.cos(a) * ARENA_RADIUS;
+  const gz = Math.sin(a) * ARENA_RADIUS;
+  const gateLight = new THREE.PointLight(0xef4444, 1, 15);
+  gateLight.position.set(gx, 3, gz);
+  scene.add(gateLight);
+  // 地面标记
+  const gateMark = new THREE.Mesh(
+    new THREE.RingGeometry(1.5, 2.5, 16),
+    new THREE.MeshBasicMaterial({ color:0xef4444, transparent:true, opacity:0.3, side:THREE.DoubleSide })
+  );
+  gateMark.rotation.x = -Math.PI/2;
+  gateMark.position.set(gx, 0.02, gz);
+  scene.add(gateMark);
+});
+
+// 中央装饰：出生点光圈
 const spawnRing = new THREE.Mesh(
   new THREE.RingGeometry(2.2, 2.6, 48),
   new THREE.MeshBasicMaterial({ color:0x67e8f9, transparent:true, opacity:0.5, side:THREE.DoubleSide })
@@ -834,25 +896,18 @@ const spawnGlow = new THREE.PointLight(0x67e8f9, 0.8, 12);
 spawnGlow.position.set(0, 0.5, 0);
 scene.add(spawnGlow);
 
-/* 关卡地形：掩体方块 */
-const terrainObjs = [];
-const terrainMat = new THREE.MeshStandardMaterial({ color:0x334155, roughness:0.8 });
-const terrainPositions = [
-  // 外圈半掩体（U 形朝前方）
-  { x:-15, z:-12, w:3, h:2, d:1 }, { x:15, z:-12, w:3, h:2, d:1 },
-  { x:-20, z:0, w:1, h:1.5, d:5 }, { x:20, z:0, w:1, h:1.5, d:5 },
-  { x:-10, z:10, w:4, h:1.8, d:1 }, { x:10, z:10, w:4, h:1.8, d:1 },
-  // 中圈低矮掩体
-  { x:-8, z:-5, w:2.5, h:1.2, d:1.5 }, { x:8, z:-5, w:2.5, h:1.2, d:1.5 },
-  { x:0, z:-18, w:6, h:2.5, d:1.5 },
-  // 后方高墙（减少背后压力）
-  { x:-12, z:22, w:8, h:3, d:1.5 }, { x:12, z:22, w:8, h:3, d:1.5 },
-  { x:0, z:28, w:5, h:2, d:1 },
+// 竞技场内掩体（中央区域低矮石柱）
+const pillarMat = new THREE.MeshStandardMaterial({ color:0x6b5b4f, roughness:0.7 });
+const pillarPositions = [
+  { x:-10, z:0, r:1.2, h:2 }, { x:10, z:0, r:1.2, h:2 },
+  { x:0, z:-10, r:1.2, h:2 }, { x:0, z:10, r:1.2, h:2 },
+  { x:-7, z:-7, r:0.8, h:1.5 }, { x:7, z:-7, r:0.8, h:1.5 },
+  { x:-7, z:7, r:0.8, h:1.5 }, { x:7, z:7, r:0.8, h:1.5 },
 ];
-terrainPositions.forEach(t => {
-  const geo = new THREE.BoxGeometry(t.w, t.h, t.d);
-  const mesh = new THREE.Mesh(geo, terrainMat);
-  mesh.position.set(t.x, t.h/2, t.z);
+pillarPositions.forEach(p => {
+  const geo = new THREE.CylinderGeometry(p.r, p.r * 1.1, p.h, 12);
+  const mesh = new THREE.Mesh(geo, pillarMat);
+  mesh.position.set(p.x, p.h/2, p.z);
   mesh.castShadow = true; mesh.receiveShadow = true;
   scene.add(mesh);
   terrainObjs.push(mesh);
@@ -1477,11 +1532,11 @@ function explode(pos, big=false) {
 const enemies = [];
 
 const ENEMY_TYPES = {
-  grunt: { color:0xef4444, size:1, hp:1, speed:1.9, gold:5, score:10, fly:false },
-  fast:  { color:0xf472b6, size:0.7, hp:1, speed:3.4, gold:7, score:14, fly:false },
-  flyer: { color:0xa78bfa, size:0.8, hp:1, speed:2.2, gold:9, score:18, fly:true },
-  tank:  { color:0x78716c, size:1.6, hp:6, speed:1.0, gold:20, score:35, fly:false },
-  boss:  { color:0xdc2626, size:3.0, hp:50, speed:0.9, gold:120, score:200, fly:false, isBoss:true },
+  grunt: { color:0xef4444, size:1, hp:1, speed:2.85, gold:5, score:10, fly:false },
+  fast:  { color:0xf472b6, size:0.7, hp:1, speed:5.1, gold:7, score:14, fly:false },
+  flyer: { color:0xa78bfa, size:0.8, hp:1, speed:3.3, gold:9, score:18, fly:true },
+  tank:  { color:0x78716c, size:1.6, hp:6, speed:1.5, gold:20, score:35, fly:false },
+  boss:  { color:0xdc2626, size:3.0, hp:50, speed:1.35, gold:120, score:200, fly:false, isBoss:true },
 };
 
 function spawnEnemy(typeKey, levelBonus=1) {
@@ -1492,20 +1547,14 @@ function spawnEnemy(typeKey, levelBonus=1) {
   });
   const e = new THREE.Mesh(geo, mat);
   e.castShadow = true;
-  // 敌人主要从玩家前方 180° 弧生成（减少背后偷袭）
-  const fwd = new THREE.Vector3();
-  camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
-  const baseAngle = Math.atan2(fwd.x, fwd.z);
-  // 70% 正面(±90°)，20% 侧翼(±135°)，10% 背后
-  let spread;
-  const rnd = Math.random();
-  if (rnd < 0.7) spread = (Math.random()-0.5) * Math.PI;        // ±90°
-  else if (rnd < 0.9) spread = (Math.random()-0.5) * Math.PI*1.5; // ±135°
-  else spread = (Math.random()-0.5) * Math.PI * 2;                // 全向
-  const angle = baseAngle + spread;
-  const radius = 38 + Math.random()*8;
+  // 从4个出怪口之一随机生成
+  const gateIdx = Math.floor(Math.random() * GATE_COUNT);
+  const gateAngle = gateAngles[gateIdx];
+  const spawnR = ARENA_RADIUS - 1; // 刚好在墙内
+  const spread = (Math.random() - 0.5) * (GATE_WIDTH / ARENA_RADIUS) * 0.8; // 出怪口宽度内随机
+  const angle = gateAngle + spread;
   const y = type.fly ? 4 + Math.random()*3 : type.size/2;
-  e.position.set(Math.cos(angle)*radius, y, Math.sin(angle)*radius);
+  e.position.set(Math.cos(angle)*spawnR, y, Math.sin(angle)*spawnR);
   e.userData = {
     type: typeKey,
     hp: type.hp * levelBonus,
@@ -1883,7 +1932,10 @@ function addExp(amount) {
 }
 function levelUp() {
   gameState.level++;
-  gameState.expNext = Math.floor(CONFIG.expBase * Math.pow(CONFIG.expGrowth, gameState.level - 1));
+  // 前5级经验需求减半
+  let nextExp = Math.floor(CONFIG.expBase * Math.pow(CONFIG.expGrowth, gameState.level - 1));
+  if (gameState.level <= 5) nextExp = Math.floor(nextExp * 0.5);
+  gameState.expNext = nextExp;
   // 升级奖励：满血 + 25 金 + 小幅伤害提升
   upgrades.dmgMul *= 1.05;
   gameState.gold += 25;
@@ -1969,10 +2021,12 @@ function endRest() {
     setMsg('💀 BOSS 降临！', 2000, '#ef4444');
     Audio.wave();
     setTimeout(spawnFinalBoss, 1500);
+    // Boss 正式出场后才提示团灭失败
+    setTimeout(()=>setMsg('⚠ 该区域团灭后任务失败 ⚠', 2500, '#ef4444'), 4000);
     return;
   }
-  // 如果下一波是 Boss 阶段，不播尸潮提示
-  if (gameState.wave + 1 >= CONFIG.bossWave) {
+  // 如果是 Boss 阶段或下一波是 Boss，不播尸潮提示
+  if (gameState.bossPhase || gameState.wave + 1 >= CONFIG.bossWave) {
     startNextWave();
   } else {
     setMsg('尸潮来袭', 2000, '#ef4444');
@@ -3093,9 +3147,11 @@ function buildWaveQueue(wave) {
   if (wave >= CONFIG.bossWave) return [];
   const queue = [];
   // 类吸血鬼幸存者：怪物数量随波次指数级增长
-  const baseCount = 12;
-  const growthFactor = 1.22; // 每波数量乘以 1.22
-  const totalCount = Math.floor(baseCount * Math.pow(growthFactor, wave - 1));
+  const baseCount = 15;
+  const growthFactor = 1.22;
+  let totalCount = Math.floor(baseCount * Math.pow(growthFactor, wave - 1));
+  // 前8波额外增加出怪量
+  if (wave <= 8) totalCount = Math.floor(totalCount * 1.5);
 
   for (let i = 0; i < totalCount; i++) {
     // 根据波次权重决定怪物类型
@@ -3131,7 +3187,6 @@ function enterBossPhase() {
   gatePromptEl.style.display = 'none';
   // 阶段二提示
   showStageScreen('阶段二', '击败BOSS', true);
-  setTimeout(()=>setMsg('⚠ 该区域团灭后任务失败 ⚠', 2500, '#ef4444'), 3600);
   Audio.beep({ freq:110, type:'sawtooth', duration:0.6, volume:0.4, slideTo:55 });
   setTimeout(()=>Audio.beep({ freq:220, type:'sawtooth', duration:0.4, volume:0.3, slideTo:110 }), 500);
   setTimeout(()=>Audio.beep({ freq:330, type:'square', duration:0.3, volume:0.35 }), 1000);
@@ -3266,7 +3321,7 @@ function startGame() {
     resting:false, restTimer:0,
     wave:0, kills:0, score:0, gold:0, hp:100,
     shield:50, maxShield:50, shieldRegen:3, shieldDelay:4, shieldTimer:0,
-    level:1, exp:0, expNext:CONFIG.expBase,
+    level:1, exp:0, expNext:Math.floor(CONFIG.expBase * 0.5),
     spawnTimer:0, spawnInterval:1.2,
     waveBudget:0, waveSpawned:0, waveClearWait:0,
     bossPhase:false, bossEntity:null,
@@ -3287,7 +3342,7 @@ function startGame() {
   bossGateActive = false;
   gatePromptEl.style.display = 'none';
   // 重置玩家位置
-  player.pos.set(6, player.eyeHeight, 6);
+  player.pos.set(0, player.eyeHeight, 0);
   player.vel.set(0, 0, 0);
   player.onGround = true;
   yaw = Math.PI; pitch = 0;
@@ -3444,10 +3499,14 @@ function updatePlayer(dt) {
     player.onGround = false;
   }
 
-  // 世界边界
-  const wh = player.worldHalf;
-  player.pos.x = Math.max(-wh, Math.min(wh, player.pos.x));
-  player.pos.z = Math.max(-wh, Math.min(wh, player.pos.z));
+  // 竞技场圆形边界
+  const distFromCenter = Math.sqrt(player.pos.x * player.pos.x + player.pos.z * player.pos.z);
+  const maxDist = ARENA_RADIUS - WALL_THICKNESS - player.radius;
+  if (distFromCenter > maxDist) {
+    const scale = maxDist / distFromCenter;
+    player.pos.x *= scale;
+    player.pos.z *= scale;
+  }
 
   // 同步到相机
   camera.position.copy(player.pos);

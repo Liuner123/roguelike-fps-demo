@@ -455,6 +455,14 @@
     0%,100% { box-shadow:0 0 0 0 rgba(167,139,250,0.6); }
     50% { box-shadow:0 0 0 8px rgba(167,139,250,0); }
   }
+  #pickPrompt.emphasize { animation:emphFlash 0.4s ease-in-out 3;
+    border-color:#fde047; background:rgba(253,224,71,0.25);
+    box-shadow:0 0 40px rgba(253,224,71,0.6); }
+  #pickPrompt.emphasize .pick-badge { background:#fde047; color:#0f172a; }
+  @keyframes emphFlash {
+    0%,100% { transform:scale(1); }
+    50% { transform:scale(1.15); }
+  }
 
   /* 技能释放屏幕特效 */
   #skillFlash { position:fixed; inset:0; pointer-events:none; z-index:7;
@@ -1762,8 +1770,8 @@ const ui = {
   bossHpText: document.getElementById('bossHpText'),
   bossName: document.getElementById('bossName'),
 };
-function setMsg(text, duration=1500, color='#fbbf24') {
-  ui.msg.textContent = text;
+function setMsg(text, duration=1500, color='#fbbf24', subtitle='') {
+  ui.msg.innerHTML = text + subtitle;
   ui.msg.style.color = color;
   ui.msg.style.textShadow = `0 0 18px ${color}99`;
   ui.msg.classList.add('show');
@@ -1882,7 +1890,7 @@ function levelUp() {
   levelVig.classList.add('show');
   clearTimeout(levelUp._t);
   levelUp._t = setTimeout(()=>levelVig.classList.remove('show'), 1200);
-  setMsg(`LEVEL UP! Lv.${gameState.level}`, 1600, '#fde047');
+  setMsg(`LEVEL UP! Lv.${gameState.level}`, 1600, '#fde047', '<div style="font-size:14px;color:#a78bfa;margin-top:4px;">📡 战术增援 +1</div>');
   showFloat(`Lv.${gameState.level} · +25金 · 伤害+5%`, '#fde047');
   // 升级音效
   Audio.beep({ freq:660, type:'triangle', duration:0.12, volume:0.25 });
@@ -1890,8 +1898,10 @@ function levelUp() {
   setTimeout(()=>Audio.beep({ freq:1320, type:'triangle', duration:0.18, volume:0.28 }), 220);
   // 获得战术增援选取机会（不自动弹出，玩家按 T 打开）
   allianceState.pendingPicks++;
-  showFloat('战术增援 +1 · 按 [T] 选取', '#a78bfa');
   renderPickButton();
+  // 右上角选增援按钮强调光效
+  pickPromptEl.classList.add('emphasize');
+  setTimeout(() => pickPromptEl.classList.remove('emphasize'), 2000);
 }
 
 /* ================= 波次结束特效 ================= */

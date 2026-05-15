@@ -1562,90 +1562,109 @@ function explode(pos, big=false) {
 /* ================= 敌人系统 ================= */
 const enemies = [];
 
+// 分类：fodder=炮灰, captain=队长, elite=精英
 const ENEMY_TYPES = {
-  grunt: { color:0xef4444, size:1, hp:1, speed:5.7, gold:5, score:10, fly:false },
-  fast:  { color:0xf472b6, size:0.5, hp:1, speed:15, gold:7, score:14, fly:false },
-  flyer: { color:0xa78bfa, size:0.8, hp:1, speed:6.6, gold:9, score:18, fly:true },
-  tank:  { color:0x78716c, size:2.0, hp:6, speed:3.0, gold:20, score:35, fly:false },
-  boss:  { color:0xdc2626, size:3.0, hp:50, speed:2.7, gold:120, score:200, fly:false, isBoss:true },
+  // === 炮灰 ===
+  zombie:    { cat:'fodder', name:'月球丧尸',     color:0xef4444, size:1.0, hp:1, speed:5.5, gold:4, score:8,   fly:false, dmg:10 },
+  bomber:    { cat:'fodder', name:'自爆丧尸',     color:0xfb923c, size:0.9, hp:1, speed:6.0, gold:5, score:10,  fly:false, dmg:25, explodeRadius:4 },
+  fatso:     { cat:'fodder', name:'胖子丧尸',     color:0x78716c, size:1.8, hp:5, speed:3.0, gold:8, score:15,  fly:false, dmg:15 },
+  swarm:     { cat:'fodder', name:'虫潮基底',     color:0x84cc16, size:0.5, hp:0.5, speed:7.0, gold:2, score:4, fly:false, dmg:5 },
+  // === 队长 ===
+  medic:     { cat:'captain', name:'医疗特种队长', color:0x22c55e, size:1.2, hp:4, speed:3.5, gold:25, score:40, fly:false, dmg:8, ranged:true, healAura:true },
+  shielder:  { cat:'captain', name:'护盾特种队长', color:0x3b82f6, size:1.2, hp:4, speed:3.5, gold:25, score:40, fly:false, dmg:8, ranged:true, shieldAura:true },
+  // === 精英 ===
+  assassin:  { cat:'elite', name:'刺客精英', color:0xec4899, size:0.8, hp:3, speed:12, gold:35, score:60,  fly:false, dmg:20, dashFreq:3 },
+  tankElite: { cat:'elite', name:'坦克精英', color:0x525252, size:2.2, hp:15, speed:2.5, gold:40, score:70, fly:false, dmg:18, dashFreq:8 },
+  rangedElite:{ cat:'elite', name:'远程精英', color:0x8b5cf6, size:1.0, hp:3, speed:4.0, gold:35, score:60, fly:true, dmg:12, laserBall:true },
+  // Boss
+  boss:      { cat:'boss', name:'BOSS', color:0xdc2626, size:3.0, hp:50, speed:2.7, gold:120, score:200, fly:false, dmg:30, isBoss:true },
 };
+
+const ENEMY_NAME_MAP = {};
+Object.entries(ENEMY_TYPES).forEach(([k,v]) => { ENEMY_NAME_MAP[k] = v.name; });
 
 function spawnEnemy(typeKey, levelBonus=1) {
   const type = ENEMY_TYPES[typeKey];
-  // 使用 Group 来组合模型部件
+  if (!type) return;
   const e = new THREE.Group();
-  // 主体
   const bodyGeo = new THREE.BoxGeometry(type.size, type.size, type.size);
   const mat = new THREE.MeshStandardMaterial({
     color:type.color, emissive:type.color, emissiveIntensity:0.4, roughness:0.5
   });
   const body = new THREE.Mesh(bodyGeo, mat);
   e.add(body);
-  // 给 Group 添加 material 引用（兼容 damageEnemy 闪烁）
   e.material = mat;
 
   // === 视觉特征 ===
-  if (typeKey === 'fast') {
-    // 突击兵：流线型尖头 + 速度拖尾光
-    const spike = new THREE.Mesh(
-      new THREE.ConeGeometry(type.size*0.3, type.size*0.6, 4),
-      new THREE.MeshStandardMaterial({ color:0xf472b6, emissive:0xf472b6, emissiveIntensity:0.8 })
-    );
-    spike.position.z = -type.size*0.5;
-    spike.rotation.x = -Math.PI/2;
-    e.add(spike);
-    // 速度线
-    const trail = new THREE.PointLight(0xf472b6, 0.5, 3);
-    trail.position.z = type.size*0.4;
-    e.add(trail);
-  } else if (typeKey === 'flyer') {
-    // 飞行兵：两对翅膀
-    for (let side of [-1, 1]) {
-      const wing = new THREE.Mesh(
-        new THREE.BoxGeometry(type.size*0.8, 0.05, type.size*0.5),
-        new THREE.MeshStandardMaterial({ color:0xc4b5fd, emissive:0xa78bfa, emissiveIntensity:0.6, transparent:true, opacity:0.7 })
-      );
-      wing.position.set(side * type.size*0.6, type.size*0.1, 0);
-      wing.rotation.z = side * 0.3;
-      wing.userData._wing = true;
-      wing.userData._side = side;
-      e.add(wing);
+  if (typeKey === 'zombie') {
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.25, 4),
+      new THREE.MeshStandardMaterial({ color:0xfca5a5, emissive:0xef4444, emissiveIntensity:0.5 }));
+    horn.position.y = type.size*0.6; e.add(horn);
+  } else if (typeKey === 'bomber') {
+    // 红色发光核心
+    const core = new THREE.Mesh(new THREE.SphereGeometry(type.size*0.25, 8, 8),
+      new THREE.MeshStandardMaterial({ color:0xff4500, emissive:0xff4500, emissiveIntensity:2, transparent:true, opacity:0.8 }));
+    core.position.y = 0; e.add(core);
+    const glow = new THREE.PointLight(0xff4500, 1, 4); glow.position.y = 0; e.add(glow);
+  } else if (typeKey === 'fatso') {
+    // 圆胖体型用球体替代方块
+    e.remove(body);
+    const fatBody = new THREE.Mesh(new THREE.SphereGeometry(type.size*0.5, 10, 10), mat);
+    e.add(fatBody);
+  } else if (typeKey === 'swarm') {
+    // 小虫子：扁平+多腿暗示
+    e.remove(body);
+    const bugBody = new THREE.Mesh(new THREE.BoxGeometry(type.size, type.size*0.4, type.size*1.3), mat);
+    e.add(bugBody);
+    for (let s of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(type.size*0.6, 0.05, 0.08),
+        new THREE.MeshStandardMaterial({ color:0x65a30d }));
+      leg.position.set(s*type.size*0.35, -type.size*0.15, 0); e.add(leg);
     }
-    // 底部推进器光
-    const thruster = new THREE.PointLight(0xa78bfa, 0.8, 4);
-    thruster.position.y = -type.size*0.4;
-    e.add(thruster);
-  } else if (typeKey === 'tank') {
-    // 重装兵：前置护盾 + 肩甲
-    const shieldGeo = new THREE.PlaneGeometry(type.size*1.2, type.size*1.0);
-    const shieldMat = new THREE.MeshStandardMaterial({
-      color:0x60a5fa, emissive:0x3b82f6, emissiveIntensity:0.5,
-      transparent:true, opacity:0.4, side:THREE.DoubleSide
-    });
-    const shield = new THREE.Mesh(shieldGeo, shieldMat);
-    shield.position.z = -type.size*0.6;
-    e.add(shield);
-    // 肩甲
-    for (let side of [-1, 1]) {
-      const pad = new THREE.Mesh(
-        new THREE.BoxGeometry(type.size*0.3, type.size*0.4, type.size*0.5),
-        new THREE.MeshStandardMaterial({ color:0x525252, metalness:0.6, roughness:0.3 })
-      );
-      pad.position.set(side * type.size*0.55, type.size*0.2, 0);
-      e.add(pad);
+  } else if (typeKey === 'medic') {
+    // 绿色十字标记
+    const cross1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.15, 0.15),
+      new THREE.MeshStandardMaterial({ color:0x4ade80, emissive:0x22c55e, emissiveIntensity:1.5 }));
+    cross1.position.y = type.size*0.55; e.add(cross1);
+    const cross2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.6, 0.15),
+      new THREE.MeshStandardMaterial({ color:0x4ade80, emissive:0x22c55e, emissiveIntensity:1.5 }));
+    cross2.position.y = type.size*0.55; e.add(cross2);
+    const healLight = new THREE.PointLight(0x22c55e, 0.8, 8); healLight.position.y = type.size*0.3; e.add(healLight);
+  } else if (typeKey === 'shielder') {
+    // 蓝色护盾面板
+    const shield = new THREE.Mesh(new THREE.PlaneGeometry(type.size*1.5, type.size*1.2),
+      new THREE.MeshStandardMaterial({ color:0x60a5fa, emissive:0x3b82f6, emissiveIntensity:0.6, transparent:true, opacity:0.4, side:THREE.DoubleSide }));
+    shield.position.z = -type.size*0.7; e.add(shield);
+    const shieldLight = new THREE.PointLight(0x3b82f6, 0.6, 6); shieldLight.position.z = -type.size*0.5; e.add(shieldLight);
+  } else if (typeKey === 'assassin') {
+    // 尖锐流线型+拖尾
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(type.size*0.3, type.size*0.8, 4),
+      new THREE.MeshStandardMaterial({ color:0xec4899, emissive:0xec4899, emissiveIntensity:1 }));
+    spike.rotation.x = -Math.PI/2; spike.position.z = -type.size*0.5; e.add(spike);
+    const trail = new THREE.PointLight(0xec4899, 0.8, 4); trail.position.z = type.size*0.4; e.add(trail);
+  } else if (typeKey === 'tankElite') {
+    // 厚重装甲+肩甲
+    for (let s of [-1, 1]) {
+      const pad = new THREE.Mesh(new THREE.BoxGeometry(type.size*0.35, type.size*0.5, type.size*0.6),
+        new THREE.MeshStandardMaterial({ color:0x3a3a3a, metalness:0.7, roughness:0.3 }));
+      pad.position.set(s*type.size*0.55, type.size*0.2, 0); e.add(pad);
     }
-  } else if (typeKey === 'grunt') {
-    // 步兵：头顶小角
-    const horn = new THREE.Mesh(
-      new THREE.ConeGeometry(type.size*0.15, type.size*0.3, 4),
-      new THREE.MeshStandardMaterial({ color:0xfca5a5, emissive:0xef4444, emissiveIntensity:0.6 })
-    );
-    horn.position.y = type.size*0.6;
-    e.add(horn);
+    // 面甲
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(type.size*0.6, type.size*0.2, 0.1),
+      new THREE.MeshStandardMaterial({ color:0xef4444, emissive:0xef4444, emissiveIntensity:1 }));
+    visor.position.set(0, type.size*0.15, -type.size*0.52); e.add(visor);
+  } else if (typeKey === 'rangedElite') {
+    // 飞行+翅膀+激光球
+    for (let s of [-1, 1]) {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(type.size*0.8, 0.05, type.size*0.5),
+        new THREE.MeshStandardMaterial({ color:0xc4b5fd, emissive:0x8b5cf6, emissiveIntensity:0.6, transparent:true, opacity:0.7 }));
+      wing.position.set(s*type.size*0.6, type.size*0.1, 0);
+      wing.rotation.z = s*0.3; wing.userData._wing = true; wing.userData._side = s; e.add(wing);
+    }
+    const orbLight = new THREE.PointLight(0x8b5cf6, 1, 6); orbLight.position.y = -type.size*0.3; e.add(orbLight);
   }
 
   e.castShadow = true;
-  // 从4个出怪口之一随机生成
   const gateIdx = Math.floor(Math.random() * GATE_COUNT);
   const gateAngle = gateAngles[gateIdx];
   const spawnR = ARENA_RADIUS - 1;
@@ -1654,16 +1673,16 @@ function spawnEnemy(typeKey, levelBonus=1) {
   const y = type.fly ? 4 + Math.random()*3 : type.size/2;
   e.position.set(Math.cos(angle)*spawnR, y, Math.sin(angle)*spawnR);
   e.userData = {
-    type: typeKey,
-    hp: type.hp * levelBonus,
-    maxHp: type.hp * levelBonus,
+    type: typeKey, cat: type.cat,
+    hp: type.hp * levelBonus, maxHp: type.hp * levelBonus,
     speed: type.speed + Math.random()*0.3,
-    gold: type.gold,
-    score: type.score,
-    fly: type.fly,
-    isBoss: !!type.isBoss,
-    size: type.size,
-    alive: true,
+    gold: type.gold, score: type.score,
+    fly: type.fly, isBoss: !!type.isBoss,
+    size: type.size, alive: true, dmg: type.dmg || 10,
+    // 行为计时器
+    _actionTimer: Math.random()*2,
+    _dashCd: 0,
+    _shieldBubble: null,
   };
   scene.add(e); enemies.push(e);
   if (type.isBoss) setMsg('⚠ BOSS 来袭 ⚠', 2000, '#ef4444');
@@ -1671,10 +1690,9 @@ function spawnEnemy(typeKey, levelBonus=1) {
 
 function damageEnemy(e, dmg) {
   if (!e.userData || !e.userData.alive) return;
-  // Tier 3 榴弹标记：受到20%额外伤害
   if (e.userData._barrageMark > 0) dmg *= 1.2;
-  // Boss 护盾：减少50%伤害
   if (e.userData._shieldActive) dmg *= 0.5;
+  if (e.userData._shieldBuff > 0) dmg *= 0.5; // 护盾队长光环减伤
   e.userData.hp -= dmg;
   e.material.emissiveIntensity = 1.5;
   setTimeout(()=>{ if (e.material) e.material.emissiveIntensity = 0.4; }, 80);
@@ -3286,23 +3304,33 @@ function tickPassiveSentry(dt) {
 function buildWaveQueue(wave) {
   if (wave >= CONFIG.bossWave) return [];
   const queue = [];
-  // 类吸血鬼幸存者：怪物数量随波次指数级增长
   const baseCount = 30;
   const growthFactor = 1.22;
   let totalCount = Math.floor(baseCount * Math.pow(growthFactor, wave - 1));
-  // 前8波额外增加出怪量
   if (wave <= 8) totalCount = Math.floor(totalCount * 1.5);
 
   for (let i = 0; i < totalCount; i++) {
-    // 根据波次权重决定怪物类型
     const rnd = Math.random();
-    const tankThresh = wave >= 8 ? 0.05 + (wave-8)*0.015 : 0;
-    const flyerThresh = tankThresh + (wave >= 5 ? 0.08 + (wave-5)*0.01 : 0);
-    const fastThresh = flyerThresh + (wave >= 3 ? 0.15 + (wave-3)*0.02 : 0);
-    if (rnd < tankThresh) queue.push('tank');
-    else if (rnd < flyerThresh) queue.push('flyer');
-    else if (rnd < fastThresh) queue.push('fast');
-    else queue.push('grunt');
+    // 精英：wave 10+ 出现，概率递增
+    const eliteChance = wave >= 10 ? Math.min(0.12, 0.02 + (wave-10)*0.01) : 0;
+    // 队长：wave 6+ 出现
+    const captainChance = wave >= 6 ? Math.min(0.10, 0.03 + (wave-6)*0.01) : 0;
+
+    if (rnd < eliteChance) {
+      // 精英：刺客/坦克/远程 均匀分配
+      const elites = ['assassin', 'tankElite', 'rangedElite'];
+      queue.push(elites[Math.floor(Math.random()*3)]);
+    } else if (rnd < eliteChance + captainChance) {
+      // 队长：医疗/护盾
+      queue.push(Math.random() < 0.5 ? 'medic' : 'shielder');
+    } else {
+      // 炮灰：按比例分配
+      const fodderRnd = Math.random();
+      if (fodderRnd < 0.35) queue.push('zombie');       // 35% 普通丧尸
+      else if (fodderRnd < 0.55) queue.push('swarm');    // 20% 虫潮
+      else if (fodderRnd < 0.75) queue.push('bomber');   // 20% 自爆丧尸
+      else queue.push('fatso');                           // 25% 胖子
+    }
   }
   // 洗牌
   for (let i=queue.length-1; i>0; i--) {
@@ -3946,40 +3974,129 @@ function update(dt) {
     }
   }
 
-  /* 敌人移动 */
+  /* 敌人移动 + AI */
   for (let i=enemies.length-1; i>=0; i--) {
     const e = enemies[i];
-    // 榴弹标记倒计时
-    if (e.userData._barrageMark > 0) e.userData._barrageMark -= dt;
-    // 飞行兵翅膀拍打
-    if (e.userData.type === 'flyer') {
+    if (!e.userData.alive) continue;
+    const ud = e.userData;
+    if (ud._barrageMark > 0) ud._barrageMark -= dt;
+    ud._actionTimer += dt;
+    if (ud._dashCd > 0) ud._dashCd -= dt;
+
+    // 翅膀动画
+    if (ud.type === 'rangedElite') {
       e.children.forEach(c => {
-        if (c.userData?._wing) {
-          c.rotation.z = c.userData._side * (0.3 + Math.sin(performance.now()*0.01) * 0.25);
-        }
+        if (c.userData?._wing) c.rotation.z = c.userData._side * (0.3 + Math.sin(performance.now()*0.01)*0.25);
       });
     }
-    // 追玩家：x/z 跟随玩家，y 看是否飞行
-    const targetX = player.pos.x;
-    const targetZ = player.pos.z;
-    const targetY = e.userData.fly ? Math.max(2, e.position.y) : e.userData.size/2;
-    tmpVec.set(targetX, targetY, targetZ).sub(e.position);
-    const dist = tmpVec.length();
-    tmpVec.normalize();
-    e.position.addScaledVector(tmpVec, e.userData.speed * dt);
-    e.rotation.y += dt * 1.5;
-    e.rotation.x += dt * 0.6;
-    // 敌人竞技场边界
-    const eDist = Math.sqrt(e.position.x**2 + e.position.z**2);
-    const eMax = ARENA_RADIUS - WALL_THICKNESS - e.userData.size*0.3;
-    if (eDist > eMax && !e.userData.fly) {
-      const eScale = eMax / eDist;
-      e.position.x *= eScale;
-      e.position.z *= eScale;
+
+    const toPlayer = new THREE.Vector3().subVectors(player.pos, e.position);
+    toPlayer.y = ud.fly ? 0 : 0;
+    const distToPlayer = toPlayer.length();
+    const dirToPlayer = toPlayer.clone().normalize();
+
+    // === 远程敌人保持距离 ===
+    if (ENEMY_TYPES[ud.type]?.ranged || ENEMY_TYPES[ud.type]?.laserBall) {
+      const keepDist = 15;
+      if (distToPlayer > keepDist + 3) {
+        // 靠近
+        e.position.addScaledVector(dirToPlayer, ud.speed * dt);
+      } else if (distToPlayer < keepDist - 3) {
+        // 后退
+        e.position.addScaledVector(dirToPlayer, -ud.speed * 0.5 * dt);
+      }
+      // 面向玩家
+      e.lookAt(player.pos.x, e.position.y, player.pos.z);
+    } else {
+      // 近战：追踪玩家
+      const targetY = ud.fly ? Math.max(3, player.pos.y + 2) : ud.size/2;
+      tmpVec.set(player.pos.x, targetY, player.pos.z).sub(e.position).normalize();
+      let spd = ud.speed;
+      // 刺客/坦克精英冲刺
+      if ((ud.type === 'assassin' || ud.type === 'tankElite') && ud._dashCd <= 0 && distToPlayer < 20 && distToPlayer > 4) {
+        ud._dashCd = ENEMY_TYPES[ud.type].dashFreq;
+        ud._dashing = 0.3; // 0.3s 冲刺
+      }
+      if (ud._dashing > 0) {
+        ud._dashing -= dt;
+        spd *= 4; // 冲刺速度×4
+      }
+      e.position.addScaledVector(tmpVec, spd * dt);
     }
-    // 非飞行敌人地形碰撞
-    if (!e.userData.fly) {
-      const er = e.userData.size * 0.4;
+    e.rotation.y += dt * 1.5;
+
+    // === 队长特殊能力 ===
+    if (ud.type === 'medic' && ud._actionTimer > 3) {
+      ud._actionTimer = 0;
+      // 回血光环：治疗周围8m内的其他怪
+      enemies.forEach(other => {
+        if (other === e || !other.userData.alive) return;
+        if (other.position.distanceTo(e.position) < 8) {
+          other.userData.hp = Math.min(other.userData.maxHp, other.userData.hp + other.userData.maxHp * 0.1);
+        }
+      });
+      // 扔手榴弹
+      if (distToPlayer < 20) {
+        const grenadePos = player.pos.clone();
+        grenadePos.x += (Math.random()-0.5)*3; grenadePos.z += (Math.random()-0.5)*3;
+        setTimeout(() => {
+          spawnSkillExplosion(grenadePos, 0x22c55e, 3, false);
+          if (!CONFIG.godMode && grenadePos.distanceTo(player.pos) < 4) {
+            gameState.hp -= 8; flashDamage(); refreshHUD();
+          }
+        }, 800);
+        Audio.beep({ freq:400, type:'square', duration:0.08, volume:0.12 });
+      }
+    }
+    if (ud.type === 'shielder' && ud._actionTimer > 4) {
+      ud._actionTimer = 0;
+      // 护盾光环：给周围6m内怪物临时减伤
+      enemies.forEach(other => {
+        if (other === e || !other.userData.alive) return;
+        if (other.position.distanceTo(e.position) < 6) {
+          other.userData._shieldBuff = 3; // 3秒减伤
+        }
+      });
+      // 远程射击
+      if (distToPlayer < 22) {
+        const dir = dirToPlayer.clone();
+        spawnBullet(e.position.clone().add(new THREE.Vector3(0,ud.size*0.3,0)), dir, 0x3b82f6, 6);
+        Audio.beep({ freq:600, type:'square', duration:0.05, volume:0.1 });
+      }
+    }
+    // 远程精英：激光球
+    if (ud.type === 'rangedElite' && ud._actionTimer > 2.5) {
+      ud._actionTimer = 0;
+      if (distToPlayer < 30) {
+        const orbPos = e.position.clone(); orbPos.y += 0.5;
+        const dir = dirToPlayer.clone();
+        const orb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.3, 8, 8),
+          new THREE.MeshStandardMaterial({ color:0x8b5cf6, emissive:0x8b5cf6, emissiveIntensity:2, transparent:true, opacity:0.8 })
+        );
+        orb.position.copy(orbPos);
+        const orbLight = new THREE.PointLight(0x8b5cf6, 1.5, 6);
+        orb.add(orbLight);
+        orb.userData = { dir, life:3, dmg:12 };
+        scene.add(orb);
+        // 用 rockets 数组管理
+        rockets.push(orb);
+        Audio.beep({ freq:500, type:'sine', duration:0.15, volume:0.15, slideTo:800 });
+      }
+    }
+    // 护盾 buff 倒计时
+    if (ud._shieldBuff > 0) ud._shieldBuff -= dt;
+
+    // 竞技场边界
+    const eDist = Math.sqrt(e.position.x**2 + e.position.z**2);
+    const eMax = ARENA_RADIUS - WALL_THICKNESS - ud.size*0.3;
+    if (eDist > eMax && !ud.fly) {
+      const eScale = eMax / eDist;
+      e.position.x *= eScale; e.position.z *= eScale;
+    }
+    // 非飞行地形碰撞
+    if (!ud.fly) {
+      const er = ud.size * 0.4;
       terrainObjs.forEach(obj => {
         const box = new THREE.Box3().setFromObject(obj);
         const cx = Math.max(box.min.x, Math.min(e.position.x, box.max.x));
@@ -3988,53 +4105,53 @@ function update(dt) {
         const dd2 = ddx*ddx + ddz*ddz;
         if (dd2 < er*er && dd2 > 0.0001) {
           const dd = Math.sqrt(dd2);
-          e.position.x += (ddx/dd) * (er - dd);
-          e.position.z += (ddz/dd) * (er - dd);
+          e.position.x += (ddx/dd)*(er-dd); e.position.z += (ddz/dd)*(er-dd);
         }
       });
     }
-    // 攻击玩家（足够近 = 直接扣血）
-    const reach = 0.9 + e.userData.size*0.4 + player.radius;
-    const distToPlayer = e.position.distanceTo(player.pos);
+
+    // === 碰撞玩家 ===
+    const reach = 0.9 + ud.size*0.4 + player.radius;
     if (distToPlayer < reach) {
-      // 无敌模式：不受伤害，Boss不消灭，普通怪消灭
       if (CONFIG.godMode) {
-        if (!e.userData.isBoss) {
-          explode(e.position, false);
-          scene.remove(e); enemies.splice(i,1);
-        }
+        if (!ud.isBoss) { explode(e.position, false); scene.remove(e); enemies.splice(i,1); }
         continue;
       }
-      const rawDmg = e.userData.isBoss ? 30 : (e.userData.type==='tank'?20:10);
-      // 护盾优先吸收伤害
+      // 自爆丧尸：大范围爆炸
+      if (ud.type === 'bomber') {
+        const r = ENEMY_TYPES.bomber.explodeRadius;
+        spawnSkillExplosion(e.position.clone(), 0xff4500, r, false);
+        Audio.explosion();
+        if (player.pos.distanceTo(e.position) < r) {
+          const bDmg = ud.dmg;
+          let dmgToHp = bDmg;
+          if (gameState.shield > 0) { const ab = Math.min(gameState.shield, bDmg); gameState.shield -= ab; dmgToHp -= ab; }
+          if (dmgToHp > 0) gameState.hp -= dmgToHp;
+        }
+        explode(e.position, false); scene.remove(e); enemies.splice(i,1);
+        flashDamage(); refreshHUD();
+        if (gameState.hp <= 0) { gameOver(); return; }
+        continue;
+      }
+      const rawDmg = ud.dmg;
       let dmgToHp = rawDmg;
       if (gameState.shield > 0) {
-        const absorbed = Math.min(gameState.shield, rawDmg);
-        gameState.shield -= absorbed;
-        dmgToHp -= absorbed;
+        const ab = Math.min(gameState.shield, rawDmg); gameState.shield -= ab; dmgToHp -= ab;
         gameState.shieldTimer = gameState.shieldDelay;
       }
-      if (dmgToHp > 0) {
-        gameState.hp -= dmgToHp;
-        gameState.shieldTimer = gameState.shieldDelay;
-      }
+      if (dmgToHp > 0) { gameState.hp -= dmgToHp; gameState.shieldTimer = gameState.shieldDelay; }
       Audio.damage();
-      // Boss 碰撞：只击退玩家，不自爆
-      if (e.userData.isBoss) {
+      if (ud.isBoss) {
         flashDamage();
-        const knockDir = new THREE.Vector3().subVectors(player.pos, e.position).setY(0).normalize();
-        player.vel.x += knockDir.x * 8;
-        player.vel.z += knockDir.z * 8;
+        const kb = new THREE.Vector3().subVectors(player.pos, e.position).setY(0).normalize();
+        player.vel.x += kb.x*8; player.vel.z += kb.z*8;
         refreshHUD();
         if (gameState.hp <= 0) { gameOver(); return; }
       } else {
-        // 普通怪：自爆消失
-        explode(e.position, false);
-        scene.remove(e); enemies.splice(i,1);
+        explode(e.position, false); scene.remove(e); enemies.splice(i,1);
         flashDamage();
-        const knockDir = new THREE.Vector3().subVectors(player.pos, e.position).setY(0).normalize();
-        player.vel.x += knockDir.x * 4;
-        player.vel.z += knockDir.z * 4;
+        const kb = new THREE.Vector3().subVectors(player.pos, e.position).setY(0).normalize();
+        player.vel.x += kb.x*4; player.vel.z += kb.z*4;
         refreshHUD();
         if (gameState.hp <= 0) { gameOver(); return; }
       }

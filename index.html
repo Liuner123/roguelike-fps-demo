@@ -300,6 +300,49 @@
   }
   #hurtVignette.hit { box-shadow: inset 0 0 180px 60px rgba(239,68,68,0.7); transition: box-shadow 0s; }
 
+  /* 导弹演出动画 */
+  #missileOverlay { position:fixed; inset:0; z-index:35; pointer-events:none; display:none;
+    overflow:hidden; }
+  #missileOverlay.active { display:block; }
+  .missile-cutscene { position:absolute; width:100%; height:100%; }
+  /* 黑色电影条 */
+  .missile-bar-top, .missile-bar-bot { position:absolute; left:0; right:0; height:0;
+    background:#000; z-index:2; transition:height 0.3s ease-out; }
+  .missile-bar-top { top:0; }
+  .missile-bar-bot { bottom:0; }
+  #missileOverlay.active .missile-bar-top,
+  #missileOverlay.active .missile-bar-bot { height:12vh; }
+  /* 导弹飞行 */
+  .missile-sprite { position:absolute; left:-120px; top:50%; z-index:3;
+    font-size:64px; transform:translateY(-50%);
+    filter:drop-shadow(0 0 20px rgba(255,50,50,0.8)); }
+  @keyframes missileFly {
+    0% { left:-120px; top:48%; transform:translateY(-50%) rotate(-5deg); }
+    40% { left:45%; top:42%; transform:translateY(-50%) rotate(0deg); }
+    60% { left:50%; top:50%; transform:translateY(-50%) scale(1.3) rotate(0deg); }
+    100% { left:50%; top:50%; transform:translateY(-50%) scale(60) rotate(0deg); opacity:0; }
+  }
+  .missile-sprite.fly { animation:missileFly 1.6s cubic-bezier(0.22,0.61,0.36,1) forwards; }
+  /* 爆炸闪白 */
+  .missile-flash { position:absolute; inset:0; z-index:4; opacity:0;
+    background:radial-gradient(circle,rgba(255,220,80,0.95),rgba(255,80,30,0.6),transparent 70%); }
+  @keyframes missileFlash {
+    0% { opacity:0; } 20% { opacity:1; } 100% { opacity:0; }
+  }
+  .missile-flash.fire { animation:missileFlash 0.6s ease-out forwards; }
+  /* 标题文字 */
+  .missile-title { position:absolute; top:18vh; left:50%; transform:translateX(-50%);
+    z-index:5; font-size:28px; font-weight:900; color:#ff3333;
+    text-shadow:0 0 30px rgba(255,50,50,0.8),0 0 60px rgba(255,200,50,0.4);
+    letter-spacing:6px; opacity:0; white-space:nowrap; }
+  @keyframes missileTitle {
+    0% { opacity:0; transform:translateX(-50%) scale(0.5); }
+    30% { opacity:1; transform:translateX(-50%) scale(1.15); }
+    60% { opacity:1; transform:translateX(-50%) scale(1); }
+    100% { opacity:0; transform:translateX(-50%) scale(1); }
+  }
+  .missile-title.show { animation:missileTitle 1.8s ease-out forwards; }
+
   /* Overlay */
   #overlay { position:fixed; inset:0; z-index:20; display:flex;
     align-items:center; justify-content:center; flex-direction:column;
@@ -668,6 +711,13 @@
 </div>
 <div id="floats"></div>
 <div id="hurtVignette"></div>
+<div id="missileOverlay">
+  <div class="missile-bar-top"></div>
+  <div class="missile-bar-bot"></div>
+  <div class="missile-sprite" id="missileSprite">🚀</div>
+  <div class="missile-flash" id="missileFlash"></div>
+  <div class="missile-title" id="missileTitle">🚀 导 弹 轰 炸 🚀</div>
+</div>
 <div id="levelVignette"></div>
 <div id="waveClearVignette"></div>
 <div id="skillFlash"></div>
@@ -856,7 +906,7 @@ scene.add(dirLight);
 const ARENA_RADIUS = 40;
 const WALL_HEIGHT = 6;
 const WALL_THICKNESS = 2;
-const GATE_COUNT = 4; // 4个出怪口
+const GATE_COUNT = 8; // 8个出怪口
 const GATE_WIDTH = 6; // 出怪口宽度(角度)
 
 const ground = new THREE.Mesh(
@@ -1186,12 +1236,12 @@ const Audio = {
 
 /* ================= 武器系统（两枪一近战） ================= */
 const WEAPONS = [
-  { id:'rifle', name:'突击步枪', key:'1', cooldown:0.12, dmg:1, unlocked:true, color:0xfde047,
+  { id:'rifle', name:'突击步枪', key:'1', cooldown:0.12, dmg:0.5, unlocked:true, color:0xfde047,
     skillName:'集中射击', skillDesc:'射速翻倍，持续3s', skillCd:8, skillDur:3 },
-  { id:'shotgun', name:'霰弹枪', key:'2', cooldown:0.6, dmg:1.5, unlocked:true, color:0xfb923c,
+  { id:'shotgun', name:'霰弹枪', key:'2', cooldown:0.6, dmg:0.75, unlocked:true, color:0xfb923c,
     pellets:6, spread:0.12,
     skillName:'爆裂弹', skillDesc:'下一发伤害×3并击退', skillCd:10, skillDur:0.8 },
-  { id:'blade', name:'能量刀', key:'3', cooldown:0.3, dmg:4, unlocked:true, color:0x22d3ee,
+  { id:'blade', name:'能量刀', key:'3', cooldown:0.3, dmg:2, unlocked:true, color:0x22d3ee,
     melee:true, meleeRange:3.5, speedBonus:1.4 },
 ];
 let currentWeapon = 0;
@@ -3331,44 +3381,79 @@ function updateBombPickups(dt) {
 }
 
 function triggerFullScreenBomb() {
-  setMsg('🚀 导弹轰炸！', 2000, '#ff3333');
-  Audio.explosion();
-  Audio.noise({ duration:0.6, volume:0.5, filterFreq:500 });
-  setTimeout(() => Audio.explosion(), 200);
+  const overlay = document.getElementById('missileOverlay');
+  const sprite = document.getElementById('missileSprite');
+  const flash = document.getElementById('missileFlash');
+  const title = document.getElementById('missileTitle');
 
-  // 全场爆炸视觉
-  spawnSkillExplosion(player.pos.clone(), 0xff3333, ARENA_RADIUS, true);
-  spawnSkillExplosion(player.pos.clone(), 0xfde047, ARENA_RADIUS * 0.6, false);
+  // 重置动画状态
+  overlay.classList.remove('active');
+  sprite.classList.remove('fly');
+  flash.classList.remove('fire');
+  title.classList.remove('show');
+  void overlay.offsetWidth;
 
-  // 全屏白闪
-  const flash = document.getElementById('hurtVignette');
-  if (flash) {
-    flash.style.background = 'radial-gradient(circle,rgba(255,200,50,0.6),rgba(255,50,50,0.3),transparent 70%)';
-    flash.classList.add('show');
-    setTimeout(() => { flash.classList.remove('show'); flash.style.background = ''; }, 400);
-  }
+  // 阶段1：电影黑条 + 导弹飞入（0~1.6s）
+  overlay.classList.add('active');
+  Audio.beep({ freq:200, type:'sawtooth', duration:0.4, volume:0.3, slideTo:800 });
+  setTimeout(() => Audio.beep({ freq:400, type:'triangle', duration:0.3, volume:0.2, slideTo:1200 }), 300);
 
-  // 固定伤害：基于波次系数，足以清炮灰、打残队长
-  const waveMul = 1 + (gameState.wave - 1) * 0.15;
-  const bombDmg = 3 * waveMul; // 炮灰HP1~5, 队长HP4, 精英HP3~15（均×waveMul）
-  const list = enemies.slice();
-  let killCount = 0;
-  list.forEach(e => {
-    if (!e.userData || !e.userData.alive) return;
-    if (e.userData.isBoss) {
-      damageEnemy(e, e.userData.maxHp * 0.15);
-      showFloat('🚀 Boss -15%', '#ff3333');
-    } else {
-      damageEnemy(e, bombDmg);
-      if (e.userData.hp <= 0) {
-        killEnemy(e);
-        killCount++;
+  // 导弹开始飞
+  setTimeout(() => {
+    sprite.classList.add('fly');
+    Audio.beep({ freq:120, type:'sawtooth', duration:1.2, volume:0.35, slideTo:600 });
+  }, 300);
+
+  // 标题出现
+  setTimeout(() => {
+    title.classList.add('show');
+  }, 200);
+
+  // 阶段2：爆炸闪白（1.2s时）
+  setTimeout(() => {
+    flash.classList.add('fire');
+    Audio.explosion();
+    Audio.noise({ duration:0.8, volume:0.6, filterFreq:400 });
+    setTimeout(() => Audio.explosion(), 150);
+
+    // 3D场景爆炸
+    spawnSkillExplosion(player.pos.clone(), 0xff3333, ARENA_RADIUS, true);
+    spawnSkillExplosion(player.pos.clone(), 0xfde047, ARENA_RADIUS * 0.6, false);
+  }, 1200);
+
+  // 阶段3：触发伤害（1.4s时，爆炸后一瞬间）
+  setTimeout(() => {
+    const waveMul = 1 + (gameState.wave - 1) * 0.15;
+    const bombDmg = 3 * waveMul;
+    const list = enemies.slice();
+    let killCount = 0;
+    list.forEach(e => {
+      if (!e.userData || !e.userData.alive) return;
+      if (e.userData.isBoss) {
+        damageEnemy(e, e.userData.maxHp * 0.15);
+        showFloat('🚀 Boss -15%', '#ff3333');
+      } else {
+        damageEnemy(e, bombDmg);
+        if (e.userData.hp <= 0) {
+          killEnemy(e);
+          killCount++;
+        }
       }
+    });
+    if (killCount > 0) {
+      showFloat(`🚀 轰炸清除 ${killCount} 只！`, '#ff3333');
     }
-  });
-  if (killCount > 0) {
-    showFloat(`🚀 轰炸清除 ${killCount} 只！`, '#ff3333');
-  }
+  }, 1400);
+
+  // 阶段4：清理演出（2.2s时）
+  setTimeout(() => {
+    overlay.classList.remove('active');
+    sprite.classList.remove('fly');
+    flash.classList.remove('fire');
+    title.classList.remove('show');
+    // 重置sprite位置
+    sprite.style.left = '-120px';
+  }, 2200);
 }
 
 function spawnSkillExplosion(pos, color, radius, isGolden) {
@@ -3614,7 +3699,7 @@ function tickPassiveDestroyer(dt) {
 function buildWaveQueue(wave) {
   if (wave >= CONFIG.bossWave) return [];
   const queue = [];
-  const baseCount = 30;
+  const baseCount = 60;
   const growthFactor = 1.22;
   let totalCount = Math.floor(baseCount * Math.pow(growthFactor, wave - 1));
   if (wave <= 8) totalCount = Math.floor(totalCount * 1.5);
@@ -4255,25 +4340,41 @@ function update(dt) {
 
   /* 持续开火（按住左键）+ 自动开火 */
   if (mouseDown) fire();
-  // 自动开火：准心对准怪物时自动射击（用方向夹角检测）
+  // 自动开火：枪械用准心夹角检测，近战用攻击范围距离检测
   _autoFireTarget = false;
   if (CONFIG.autoFire && !mouseDown && enemies.length > 0 && weaponCooldown <= 0) {
-    camera.getWorldDirection(_afDir);
-    for (let i = 0; i < enemies.length; i++) {
-      const e = enemies[i];
-      if (!e.userData || !e.userData.alive) continue;
-      _afToE.subVectors(e.position, camera.position);
-      const dist = _afToE.length();
-      if (dist < 1 || dist > 60) continue;
-      _afToE.normalize();
-      const dot = _afDir.dot(_afToE);
-      // 判定阈值：根据敌人大小和距离动态调整
-      const sz = e.userData.size || 1;
-      const threshold = Math.cos(Math.atan2(sz * 0.5, dist) + 0.03);
-      if (dot > threshold) {
-        _autoFireTarget = true;
-        fire();
-        break;
+    const w = WEAPONS[currentWeapon];
+    if (w.melee) {
+      // 近战：攻击范围内有怪物就自动挥砍
+      const meleeR = w.meleeRange || 3.5;
+      for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!e.userData || !e.userData.alive) continue;
+        const dist = player.pos.distanceTo(e.position);
+        if (dist <= meleeR + (e.userData.size || 1) * 0.5) {
+          _autoFireTarget = true;
+          fire();
+          break;
+        }
+      }
+    } else {
+      // 枪械：准心方向夹角检测
+      camera.getWorldDirection(_afDir);
+      for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!e.userData || !e.userData.alive) continue;
+        _afToE.subVectors(e.position, camera.position);
+        const dist = _afToE.length();
+        if (dist < 1 || dist > 60) continue;
+        _afToE.normalize();
+        const dot = _afDir.dot(_afToE);
+        const sz = e.userData.size || 1;
+        const threshold = Math.cos(Math.atan2(sz * 0.5, dist) + 0.03);
+        if (dot > threshold) {
+          _autoFireTarget = true;
+          fire();
+          break;
+        }
       }
     }
   }

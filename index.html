@@ -241,6 +241,11 @@
     background:#67e8f9; box-shadow:0 0 6px #67e8f9; }
   #crosshair::before { left:10px; top:0; width:2px; height:22px; }
   #crosshair::after { top:10px; left:0; height:2px; width:22px; }
+  #crosshair.auto-target { width:28px; height:28px; }
+  #crosshair.auto-target::before, #crosshair.auto-target::after {
+    background:#ef4444; box-shadow:0 0 8px #ef4444, 0 0 16px rgba(239,68,68,0.4); }
+  #crosshair.auto-target::before { left:13px; height:28px; }
+  #crosshair.auto-target::after { top:13px; width:28px; }
 
   /* 怪物血条（挂载在头顶） */
   #enemyHpBars { position:fixed; inset:0; z-index:11; pointer-events:none; }
@@ -631,6 +636,10 @@
         <input type="checkbox" id="cfgGodMode">
       </div>
       <div class="settings-row">
+        <label>自动开火</label>
+        <input type="checkbox" id="cfgAutoFire">
+      </div>
+      <div class="settings-row">
         <label>清怪按键</label>
         <button class="keybind-btn" id="kbClearAll" data-cfg="clearAllKey">鼠标中键</button>
       </div>
@@ -641,6 +650,7 @@
         <input type="number" id="debugJumpWave" min="1" max="100" value="15" style="width:60px;padding:4px 6px;background:#1e293b;border:1px solid #475569;color:#fff;border-radius:4px;font-size:13px;">
         <button id="debugJumpBtn" class="btn-secondary">⏩ 跳转波次</button>
       </div>
+      <button id="debugSpawnMissile" class="btn-secondary">🚀 生成导弹</button>
       <button id="settingsReset" class="btn-secondary">恢复默认</button>
       <button id="settingsClose" class="btn-primary">关闭 (P)</button>
     </div>
@@ -796,6 +806,7 @@ const CONFIG = {
   clearAllEnabled: true,  // 是否启用一键清怪
   clearAllKey: 'Mouse1',  // 默认鼠标中键（Mouse1 = button 1 = 中键）
   godMode: false,         // 无敌模式
+  autoFire: true,         // 自动开火（准心对准怪物时）
 };
 
 /* ================= 基础场景 ================= */
@@ -813,7 +824,7 @@ const player = {
   radius: 0.45,
   height: 1.7,
   eyeHeight: 1.7,
-  speed: 7.5,            // 水平移动速度
+  speed: 8,              // 水平移动速度
   jumpSpeed: 6.0,        // 跳跃初速
   gravity: 20,
   onGround: true,
@@ -1438,6 +1449,11 @@ const explosions = [];
 
 const bulletGeo = new THREE.SphereGeometry(0.12,8,8);
 
+// 自动开火辅助
+const _afDir = new THREE.Vector3();
+const _afToE = new THREE.Vector3();
+let _autoFireTarget = false;
+
 function fire() {
   if (!gameState.running || gameState.paused) return;
   if (weaponCooldown > 0) return;
@@ -1580,19 +1596,19 @@ const enemies = [];
 // 分类：fodder=炮灰, captain=队长, elite=精英
 const ENEMY_TYPES = {
   // === 炮灰 ===
-  zombie:    { cat:'fodder', name:'月球丧尸',     color:0xef4444, size:1.0, hp:1, speed:5.5, gold:4, score:8,   fly:false, dmg:10 },
-  bomber:    { cat:'fodder', name:'自爆丧尸',     color:0xfb923c, size:0.9, hp:1, speed:6.0, gold:5, score:10,  fly:false, dmg:25, explodeRadius:8 },
-  fatso:     { cat:'fodder', name:'胖子丧尸',     color:0x78716c, size:1.8, hp:5, speed:3.0, gold:8, score:15,  fly:false, dmg:15 },
-  swarm:     { cat:'fodder', name:'虫潮基底',     color:0x84cc16, size:0.5, hp:0.5, speed:7.0, gold:2, score:4, fly:false, dmg:5 },
+  zombie:    { cat:'fodder', name:'月球丧尸',     color:0xef4444, size:1.0, hp:1, speed:4.4, gold:4, score:8,   fly:false, dmg:10 },
+  bomber:    { cat:'fodder', name:'自爆丧尸',     color:0xfb923c, size:0.9, hp:1, speed:4.8, gold:5, score:10,  fly:false, dmg:25, explodeRadius:8 },
+  fatso:     { cat:'fodder', name:'胖子丧尸',     color:0x78716c, size:1.8, hp:5, speed:2.4, gold:8, score:15,  fly:false, dmg:15 },
+  swarm:     { cat:'fodder', name:'虫潮基底',     color:0x84cc16, size:0.5, hp:0.5, speed:5.6, gold:2, score:4, fly:false, dmg:5 },
   // === 队长 ===
-  medic:     { cat:'captain', name:'医疗特种队长', color:0x22c55e, size:1.2, hp:4, speed:3.5, gold:25, score:40, fly:false, dmg:8, ranged:true, healAura:true },
-  shielder:  { cat:'captain', name:'护盾特种队长', color:0x3b82f6, size:1.2, hp:4, speed:3.5, gold:25, score:40, fly:false, dmg:8, ranged:true, shieldAura:true },
+  medic:     { cat:'captain', name:'医疗特种队长', color:0x22c55e, size:1.2, hp:4, speed:2.8, gold:25, score:40, fly:false, dmg:8, ranged:true, healAura:true },
+  shielder:  { cat:'captain', name:'护盾特种队长', color:0x3b82f6, size:1.2, hp:4, speed:2.8, gold:25, score:40, fly:false, dmg:8, ranged:true, shieldAura:true },
   // === 精英 ===
-  assassin:  { cat:'elite', name:'刺客精英', color:0xec4899, size:0.8, hp:3, speed:12, gold:35, score:60,  fly:false, dmg:20, dashFreq:3 },
-  tankElite: { cat:'elite', name:'坦克精英', color:0x525252, size:2.2, hp:15, speed:2.5, gold:40, score:70, fly:false, dmg:18, dashFreq:8 },
-  rangedElite:{ cat:'elite', name:'远程精英', color:0x8b5cf6, size:1.0, hp:3, speed:4.0, gold:35, score:60, fly:true, dmg:12, laserBall:true },
+  assassin:  { cat:'elite', name:'刺客精英', color:0xec4899, size:0.8, hp:3, speed:9.6, gold:35, score:60,  fly:false, dmg:20, dashFreq:3 },
+  tankElite: { cat:'elite', name:'坦克精英', color:0x525252, size:2.2, hp:15, speed:2.0, gold:40, score:70, fly:false, dmg:18, dashFreq:8 },
+  rangedElite:{ cat:'elite', name:'远程精英', color:0x8b5cf6, size:1.0, hp:3, speed:3.2, gold:35, score:60, fly:true, dmg:12, laserBall:true },
   // Boss
-  boss:      { cat:'boss', name:'BOSS', color:0xdc2626, size:3.0, hp:50, speed:2.7, gold:120, score:200, fly:false, dmg:30, isBoss:true },
+  boss:      { cat:'boss', name:'BOSS', color:0xdc2626, size:3.0, hp:50, speed:2.16, gold:120, score:200, fly:false, dmg:30, isBoss:true },
 };
 
 const ENEMY_NAME_MAP = {};
@@ -1775,6 +1791,10 @@ function killEnemy(e) {
   showFloat(`+${goldGain}金 +${expGain}EXP`, '#fbbf24');
   Audio.kill(); Audio.coin();
   refreshHUD(); renderWeaponBar();
+  // 随机掉落轰炸道具（3%概率）
+  if (Math.random() < 0.03 && !e.userData.isBoss) {
+    spawnBombPickup(e.position.clone());
+  }
 }
 
 /* ================= 飘字 ================= */
@@ -3233,6 +3253,124 @@ function updateDrones(dt) {
   });
 }
 
+/* ================= 轰炸道具拾取系统 ================= */
+const bombPickups = [];
+
+function spawnBombPickup(pos) {
+  const g = new THREE.Group();
+  const missileMat = new THREE.MeshStandardMaterial({ color:0x888888, metalness:0.7, roughness:0.3 });
+  // 弹体（圆柱）
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.2, 8), missileMat);
+  body.rotation.z = Math.PI / 2;
+  g.add(body);
+  // 弹头（红色锥形）
+  const nose = new THREE.Mesh(
+    new THREE.ConeGeometry(0.15, 0.4, 8),
+    new THREE.MeshStandardMaterial({ color:0xff2222, emissive:0xff2222, emissiveIntensity:0.8 })
+  );
+  nose.rotation.z = -Math.PI / 2;
+  nose.position.x = 0.8;
+  g.add(nose);
+  // 尾翼（4片）
+  const finMat = new THREE.MeshStandardMaterial({ color:0x555555, metalness:0.6 });
+  for (let i = 0; i < 4; i++) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.2), finMat);
+    fin.position.x = -0.55;
+    fin.rotation.x = (i / 4) * Math.PI;
+    g.add(fin);
+  }
+  // 尾焰（橙色发光）
+  const flame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.1, 0.3, 6),
+    new THREE.MeshStandardMaterial({ color:0xff6600, emissive:0xff6600, emissiveIntensity:3, transparent:true, opacity:0.7 })
+  );
+  flame.rotation.z = Math.PI / 2;
+  flame.position.x = -0.75;
+  g.add(flame);
+  // 点光源
+  const light = new THREE.PointLight(0xff3333, 2, 8);
+  g.add(light);
+  // 底部光环提示
+  const halo = new THREE.Mesh(
+    new THREE.RingGeometry(0.6, 0.8, 16),
+    new THREE.MeshBasicMaterial({ color:0xff3333, transparent:true, opacity:0.35, side:THREE.DoubleSide })
+  );
+  halo.rotation.x = -Math.PI / 2;
+  halo.position.y = -0.8;
+  g.add(halo);
+
+  pos.y = 1.2;
+  g.position.copy(pos);
+  g.userData = { life: 20, body: g };
+  scene.add(g);
+  bombPickups.push(g);
+}
+
+function updateBombPickups(dt) {
+  for (let i = bombPickups.length - 1; i >= 0; i--) {
+    const p = bombPickups[i];
+    p.userData.life -= dt;
+    // 缓慢旋转+浮动
+    p.rotation.y += dt * 1.5;
+    p.position.y = 1.2 + Math.sin(performance.now() * 0.003) * 0.3;
+    // 最后5秒闪烁
+    if (p.userData.life < 5) {
+      p.visible = Math.sin(performance.now() * 0.015) > 0;
+    }
+    // 超时消失
+    if (p.userData.life <= 0) {
+      scene.remove(p); bombPickups.splice(i, 1); continue;
+    }
+    // 拾取检测
+    const dist = player.pos.distanceTo(p.position);
+    if (dist < 2.5) {
+      scene.remove(p); bombPickups.splice(i, 1);
+      triggerFullScreenBomb();
+    }
+  }
+}
+
+function triggerFullScreenBomb() {
+  setMsg('🚀 导弹轰炸！', 2000, '#ff3333');
+  Audio.explosion();
+  Audio.noise({ duration:0.6, volume:0.5, filterFreq:500 });
+  setTimeout(() => Audio.explosion(), 200);
+
+  // 全场爆炸视觉
+  spawnSkillExplosion(player.pos.clone(), 0xff3333, ARENA_RADIUS, true);
+  spawnSkillExplosion(player.pos.clone(), 0xfde047, ARENA_RADIUS * 0.6, false);
+
+  // 全屏白闪
+  const flash = document.getElementById('hurtVignette');
+  if (flash) {
+    flash.style.background = 'radial-gradient(circle,rgba(255,200,50,0.6),rgba(255,50,50,0.3),transparent 70%)';
+    flash.classList.add('show');
+    setTimeout(() => { flash.classList.remove('show'); flash.style.background = ''; }, 400);
+  }
+
+  // 固定伤害：基于波次系数，足以清炮灰、打残队长
+  const waveMul = 1 + (gameState.wave - 1) * 0.15;
+  const bombDmg = 3 * waveMul; // 炮灰HP1~5, 队长HP4, 精英HP3~15（均×waveMul）
+  const list = enemies.slice();
+  let killCount = 0;
+  list.forEach(e => {
+    if (!e.userData || !e.userData.alive) return;
+    if (e.userData.isBoss) {
+      damageEnemy(e, e.userData.maxHp * 0.15);
+      showFloat('🚀 Boss -15%', '#ff3333');
+    } else {
+      damageEnemy(e, bombDmg);
+      if (e.userData.hp <= 0) {
+        killEnemy(e);
+        killCount++;
+      }
+    }
+  });
+  if (killCount > 0) {
+    showFloat(`🚀 轰炸清除 ${killCount} 只！`, '#ff3333');
+  }
+}
+
 function spawnSkillExplosion(pos, color, radius, isGolden) {
   // 地面冲击波环
   const ringGeo = new THREE.RingGeometry(0.1, radius, 32);
@@ -3858,6 +3996,7 @@ function startGame() {
   _barragePassiveTimer = 0;
   _destroyerPassiveTimer = 0;
   _sentryPassiveTimer = 0;
+  bombPickups.forEach(p => scene.remove(p)); bombPickups.length = 0;
   renderSkillBar();
   renderPickButton();
   // 重置 Boss 门
@@ -4114,8 +4253,35 @@ function update(dt) {
     }
   }
 
-  /* 持续开火（按住左键） */
+  /* 持续开火（按住左键）+ 自动开火 */
   if (mouseDown) fire();
+  // 自动开火：准心对准怪物时自动射击（用方向夹角检测）
+  _autoFireTarget = false;
+  if (CONFIG.autoFire && !mouseDown && enemies.length > 0 && weaponCooldown <= 0) {
+    camera.getWorldDirection(_afDir);
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (!e.userData || !e.userData.alive) continue;
+      _afToE.subVectors(e.position, camera.position);
+      const dist = _afToE.length();
+      if (dist < 1 || dist > 60) continue;
+      _afToE.normalize();
+      const dot = _afDir.dot(_afToE);
+      // 判定阈值：根据敌人大小和距离动态调整
+      const sz = e.userData.size || 1;
+      const threshold = Math.cos(Math.atan2(sz * 0.5, dist) + 0.03);
+      if (dot > threshold) {
+        _autoFireTarget = true;
+        fire();
+        break;
+      }
+    }
+  }
+  const chEl = document.getElementById('crosshair');
+  if (chEl) {
+    if (_autoFireTarget) chEl.classList.add('auto-target');
+    else chEl.classList.remove('auto-target');
+  }
 
   /* 生成 */
   if (gameState.resting) {
@@ -4449,6 +4615,7 @@ function update(dt) {
   updatePlacePreview();
   updateTurrets(dt);
   updateDrones(dt);
+  updateBombPickups(dt);
   updateBossGate(dt);
   updateBossAI(dt);
   updateFPWeapon(dt);
@@ -4741,6 +4908,7 @@ function initSettings() {
   bindNumber('cfgRadar',     'radarRange');
   bindCheckbox('cfgClearAllEnabled', 'clearAllEnabled');
   bindCheckbox('cfgGodMode', 'godMode');
+  bindCheckbox('cfgAutoFire', 'autoFire');
 
   // 技能键位映射
   initKeybinds();
@@ -4768,6 +4936,15 @@ function initSettings() {
     setMsg(`跳转到第 ${target} 波`, 1500, '#67e8f9');
     refreshHUD();
   });
+  document.getElementById('debugSpawnMissile').addEventListener('click', () => {
+    if (!gameState.running) return;
+    const fwd = new THREE.Vector3();
+    camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+    const pos = player.pos.clone().addScaledVector(fwd, 5);
+    pos.y = 1.2;
+    spawnBombPickup(pos);
+    setMsg('🚀 导弹已生成', 1000, '#ff3333');
+  });
   document.getElementById('settingsReset').addEventListener('click', () => {
     Object.assign(CONFIG, DEFAULT_CONFIG);
     saveSettings();
@@ -4787,6 +4964,7 @@ function initSettings() {
     document.getElementById('cfgRadar').value = CONFIG.radarRange;
     document.getElementById('cfgClearAllEnabled').checked = !!CONFIG.clearAllEnabled;
     document.getElementById('cfgGodMode').checked = !!CONFIG.godMode;
+    document.getElementById('cfgAutoFire').checked = !!CONFIG.autoFire;
     document.getElementById('kbClearAll').textContent = keyCodeToLabel(CONFIG.clearAllKey);
     document.getElementById('kbWS1').textContent = keyCodeToLabel(CONFIG.weaponSkillKey1);
     document.getElementById('kbWS2').textContent = keyCodeToLabel(CONFIG.weaponSkillKey2);

@@ -1830,7 +1830,7 @@ function killEnemy(e) {
   const goldGain = Math.floor(e.userData.gold * allianceState.goldMul);
   gameState.gold += goldGain;
   if (!_missileKilling) {
-    const expGain = Math.max(1, Math.floor(e.userData.score * 0.3 * allianceState.expMul));
+    const expGain = Math.max(1, Math.floor(e.userData.score * 0.1 * allianceState.expMul));
     spawnExpOrb(ePos, expGain);
     if (_chainDepth === 0) showFloat(`+${goldGain}金`, '#fbbf24');
   }
@@ -3547,7 +3547,7 @@ function triggerFullScreenBomb() {
           const hp0 = e.userData.hp;
           e.userData.hp -= bombDmg;
           if (e.userData.hp <= 0) {
-            totalExp += Math.max(1, Math.floor(e.userData.score * 0.3 * allianceState.expMul));
+            totalExp += Math.max(1, Math.floor(e.userData.score * 0.1 * allianceState.expMul));
             gameState.gold += Math.floor(e.userData.gold * allianceState.goldMul);
             gameState.score += e.userData.score;
             gameState.kills++;

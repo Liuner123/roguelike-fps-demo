@@ -1840,7 +1840,7 @@ function killEnemy(e) {
   if (wasBomber) {
     _chainDepth++;
     const r = ENEMY_TYPES.bomber.explodeRadius;
-    const waveMul = 1 + (gameState.wave - 1) * 0.15;
+    const waveMul = 1 + (gameState.wave - 1) * 0.40;
     if (_chainDepth === 1) Audio.explosion();
     for (let j = enemies.length - 1; j >= 0; j--) {
       const other = enemies[j];
@@ -3529,7 +3529,7 @@ function triggerFullScreenBomb() {
 
   // 阶段3：触发伤害（1.0s时，分帧击杀）
   setTimeout(() => {
-    const waveMul = 1 + (gameState.wave - 1) * 0.15;
+    const waveMul = 1 + (gameState.wave - 1) * 0.40;
     const bombDmg = 8 * waveMul;
     const list = enemies.slice();
     let killCount = 0;
@@ -4064,7 +4064,7 @@ function updateBossAI(dt) {
         const sz = boss.position.z + Math.sin(angle) * r;
         const types = ['grunt', 'fast', 'fast', 'grunt'];
         const tk = types[Math.floor(Math.random() * types.length)];
-        spawnEnemy(tk, 1 + (gameState.wave - 1) * 0.15);
+        spawnEnemy(tk, 1 + (gameState.wave - 1) * 0.40);
         const spawned = enemies[enemies.length - 1];
         if (spawned) {
           spawned.position.set(sx, spawned.userData.size/2, sz);
@@ -4151,8 +4151,11 @@ function onBossDefeated() {
   // 胜利！
   gameState.running = false;
   if (document.pointerLockElement) document.exitPointerLock();
+  const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+  const mm = Math.floor(elapsed / 60), ss = elapsed % 60;
+  const timeStr = `${mm}分${ss < 10 ? '0' : ''}${ss}秒`;
   // 华丽特效
-  setMsg('🏆 胜利！ 🏆', 4000, '#fde047');
+  setMsg(`🏆 胜利！用时 ${timeStr} 🏆`, 4000, '#fde047');
   const levelVig = document.getElementById('levelVignette');
   levelVig.classList.add('show');
   setTimeout(()=>levelVig.classList.remove('show'), 3000);
@@ -4198,7 +4201,7 @@ function startGame() {
   // 重置
   Object.assign(gameState, {
     running:true, paused:false, quitConfirming:false,
-    resting:false, restTimer:0,
+    resting:false, restTimer:0, startTime:Date.now(),
     wave:0, kills:0, score:0, gold:0, hp:100,
     shield:50, maxShield:50, shieldRegen:3, shieldDelay:4, shieldTimer:0,
     level:1, exp:0, expNext:CONFIG.expBase,
@@ -4269,9 +4272,12 @@ function gameOver() {
   if (document.pointerLockElement) document.exitPointerLock();
   overlay.style.display = 'flex';
   const title = gameState.bossPhase ? '任务失败' : '你阵亡了';
+  const elapsed2 = Math.floor((Date.now() - gameState.startTime) / 1000);
+  const mm2 = Math.floor(elapsed2 / 60), ss2 = elapsed2 % 60;
+  const timeStr2 = `${mm2}分${ss2 < 10 ? '0' : ''}${ss2}秒`;
   overlay.querySelector('h1').textContent = title;
   overlay.querySelector('p').innerHTML =
-    `坚持了 <b>${gameState.wave}</b> 波，击杀 <b>${gameState.kills}</b>，得分 <b>${gameState.score}</b>，金币 <b>${gameState.gold}</b>。<br/>再来一局？`;
+    `用时 <b>${timeStr2}</b>，坚持了 <b>${gameState.wave}</b> 波，击杀 <b>${gameState.kills}</b>，得分 <b>${gameState.score}</b>，金币 <b>${gameState.gold}</b>。<br/>再来一局？`;
   document.getElementById('feedbackLink').style.display = 'block';
   document.getElementById('startBtn').textContent = '重新开始';
 }
@@ -4532,7 +4538,7 @@ function update(dt) {
     if (gameState.spawnTimer >= gameState.spawnInterval) {
       gameState.spawnTimer = 0;
       const type = waveQueue[gameState.waveSpawned] || 'grunt';
-      spawnEnemy(type, 1 + (gameState.wave-1)*0.15);
+      spawnEnemy(type, 1 + (gameState.wave-1)*0.40);
       gameState.waveSpawned++;
     }
   } else if (enemies.length === 0) {
@@ -4743,7 +4749,7 @@ function update(dt) {
           player.vel.x += kb.x * kbForce; player.vel.z += kb.z * kbForce;
         }
         // 对周围怪物造成伤害（距离衰减）
-        const waveMul = 1 + (gameState.wave - 1) * 0.15;
+        const waveMul = 1 + (gameState.wave - 1) * 0.40;
         for (let j = enemies.length - 1; j >= 0; j--) {
           if (j === i) continue; // 跳过自己
           const other = enemies[j];

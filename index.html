@@ -2329,7 +2329,7 @@ function startNextWave() {
   waveQueue = buildWaveQueue(gameState.wave);
   gameState.waveBudget = waveQueue.length;
   gameState.waveSpawned = 0;
-  gameState.spawnInterval = Math.max(0.04, 0.27 - gameState.wave * 0.01); // 极速刷怪
+  gameState.spawnInterval = Math.max(0.02, 0.18 - gameState.wave * 0.008); // 超速刷怪
   gameState.waveClearWait = 0;
 }
 

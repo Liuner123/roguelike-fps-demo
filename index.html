@@ -443,6 +443,21 @@
     justify-content:center; font-size:16px; color:#fff; font-weight:bold; }
   .sk-slot.golden { border-color:#fbbf24; box-shadow:0 0 14px rgba(253,224,71,0.3); }
 
+  /* 被动技能：无底板纯图标（放大） */
+  .sk-passive { display:flex; flex-direction:column; align-items:center; justify-content:center;
+    width:96px; height:96px; position:relative; opacity:0.9; }
+  .sk-passive .sk-icon { font-size:44px; filter:drop-shadow(0 0 6px rgba(255,255,255,0.3)); }
+  .sk-passive .sk-name { font-size:11px; color:#94a3b8; margin-top:2px; white-space:nowrap; }
+  .sk-passive .sk-passive-ready { font-size:10px; color:#22c55e; }
+  .sk-passive.golden .sk-icon { filter:drop-shadow(0 0 8px rgba(253,224,71,0.5)); }
+  .sk-passive.golden .sk-name { color:#fbbf24; }
+  /* 圆形CD遮罩（conic-gradient扇形） */
+  .sk-passive .sk-cd-sweep { position:absolute; inset:4px; border-radius:50%;
+    pointer-events:none; z-index:1; }
+  .sk-passive .sk-cd-text { position:absolute; bottom:2px; left:50%; transform:translateX(-50%);
+    font-size:12px; color:#fb923c; font-family:monospace; font-weight:bold; z-index:2;
+    text-shadow:0 0 4px rgba(0,0,0,0.8); }
+
   /* 战术增援待选取提示 - 右上角 */
   #pickPrompt { position:fixed; top:62px; right:18px;
     z-index:12; display:none; align-items:center; gap:8px;
@@ -1566,7 +1581,7 @@ const enemies = [];
 const ENEMY_TYPES = {
   // === 炮灰 ===
   zombie:    { cat:'fodder', name:'月球丧尸',     color:0xef4444, size:1.0, hp:1, speed:5.5, gold:4, score:8,   fly:false, dmg:10 },
-  bomber:    { cat:'fodder', name:'自爆丧尸',     color:0xfb923c, size:0.9, hp:1, speed:6.0, gold:5, score:10,  fly:false, dmg:25, explodeRadius:4 },
+  bomber:    { cat:'fodder', name:'自爆丧尸',     color:0xfb923c, size:0.9, hp:1, speed:6.0, gold:5, score:10,  fly:false, dmg:25, explodeRadius:8 },
   fatso:     { cat:'fodder', name:'胖子丧尸',     color:0x78716c, size:1.8, hp:5, speed:3.0, gold:8, score:15,  fly:false, dmg:15 },
   swarm:     { cat:'fodder', name:'虫潮基底',     color:0x84cc16, size:0.5, hp:0.5, speed:7.0, gold:2, score:4, fly:false, dmg:5 },
   // === 队长 ===
@@ -1601,11 +1616,56 @@ function spawnEnemy(typeKey, levelBonus=1) {
       new THREE.MeshStandardMaterial({ color:0xfca5a5, emissive:0xef4444, emissiveIntensity:0.5 }));
     horn.position.y = type.size*0.6; e.add(horn);
   } else if (typeKey === 'bomber') {
-    // 红色发光核心
-    const core = new THREE.Mesh(new THREE.SphereGeometry(type.size*0.25, 8, 8),
-      new THREE.MeshStandardMaterial({ color:0xff4500, emissive:0xff4500, emissiveIntensity:2, transparent:true, opacity:0.8 }));
-    core.position.y = 0; e.add(core);
-    const glow = new THREE.PointLight(0xff4500, 1, 4); glow.position.y = 0; e.add(glow);
+    // 手雷造型：暗示自爆
+    e.remove(body);
+    const s = type.size;
+    // 主体：椭圆形手雷壳体（深橄榄绿）
+    const grenadeBody = new THREE.Mesh(
+      new THREE.SphereGeometry(s*0.45, 12, 10),
+      new THREE.MeshStandardMaterial({ color:0x4a5a2a, emissive:0xfb923c, emissiveIntensity:0.3, roughness:0.6 })
+    );
+    grenadeBody.scale.set(1, 1.3, 1);
+    e.add(grenadeBody);
+    // 表面纵向沟槽（4条深色条纹暗示分裂线）
+    for (let i = 0; i < 4; i++) {
+      const groove = new THREE.Mesh(
+        new THREE.BoxGeometry(0.03, s*1.1, s*0.92),
+        new THREE.MeshStandardMaterial({ color:0x2a3518, roughness:0.9 })
+      );
+      groove.rotation.y = (i / 4) * Math.PI;
+      e.add(groove);
+    }
+    // 横向沟槽（中间一圈）
+    const hGroove = new THREE.Mesh(
+      new THREE.TorusGeometry(s*0.44, 0.025, 4, 16),
+      new THREE.MeshStandardMaterial({ color:0x2a3518, roughness:0.9 })
+    );
+    e.add(hGroove);
+    // 顶部保险杆（金属灰色弧形把手）
+    const leverMat = new THREE.MeshStandardMaterial({ color:0x888888, metalness:0.8, roughness:0.3 });
+    const lever = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.5, 0.12), leverMat);
+    lever.position.set(0, s*0.6 + 0.2, 0);
+    e.add(lever);
+    // 保险杆顶部圆头
+    const leverTop = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), leverMat);
+    leverTop.position.set(0, s*0.6 + 0.45, 0);
+    e.add(leverTop);
+    // 拉环（黄色警示色小环）
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.08, 0.025, 6, 12),
+      new THREE.MeshStandardMaterial({ color:0xfbbf24, emissive:0xfbbf24, emissiveIntensity:0.8, metalness:0.5 })
+    );
+    ring.position.set(0.12, s*0.6 + 0.1, 0);
+    ring.rotation.y = Math.PI/2;
+    e.add(ring);
+    // 危险发光核心（透过缝隙闪烁的橙红光）
+    const core = new THREE.Mesh(new THREE.SphereGeometry(s*0.2, 8, 8),
+      new THREE.MeshStandardMaterial({ color:0xff4500, emissive:0xff4500, emissiveIntensity:2.5, transparent:true, opacity:0.6 }));
+    e.add(core);
+    // 点光源脉冲（橙色警告光）
+    const glow = new THREE.PointLight(0xff6b00, 1.5, 5);
+    glow.position.y = 0;
+    e.add(glow);
   } else if (typeKey === 'fatso') {
     // 圆胖体型用球体替代方块
     e.remove(body);
@@ -2207,11 +2267,11 @@ const ALLIANCE = {
         { desc:'榴弹爆炸后分裂成4个弹片，每个造成50%伤害', golden:true },
         { desc:'榴弹轰炸持续时间无限，间隔变为10s(被动化)', golden:true },
       ]},
-    { id:'destroyer', name:'毁灭者', icon:'🔫', key:'5', color:'#ef4444', cd:15, baseDmg:2,
+    { id:'destroyer', name:'毁灭者', icon:'🔫', key:'5', color:'#ef4444', cd:15, baseDmg:2, passive:true,
       tiers: [
-        { desc:'毁灭者炮台存在上限+1', golden:false },
+        { desc:'获得毁灭者被动：每15s自动在身旁部署炮台(上限1)', golden:false },
         { desc:'激光每秒伤害+20%，最多5层，切换目标时清空', golden:false },
-        { desc:'毁灭者炮台存在上限+1', golden:false },
+        { desc:'毁灭者炮台存在上限+1(上限2)', golden:false },
         { desc:'每10s炮台过载5s，+50%伤害(激光变红)', golden:true },
         { desc:'枪械命中敌人后提高毁灭者暴击率5%，5s(最多10层)', golden:false },
         { desc:'毁灭者炮台永久保持过载状态', golden:false },
@@ -2423,6 +2483,28 @@ function pickAlliance(opt) {
       const newTier = allianceState.skillTier[ci];
       if (newTier === 1 || newTier === 3) allianceState.turretMax += 1;
       else if (newTier === 7) allianceState.turretMax *= 2; // 上限翻倍
+      // 获得时立即部署一个炮台，然后进入CD
+      _destroyerPassiveTimer = 0;
+      const dChain = ALLIANCE.tactical[1];
+      const dInterval = Math.max(5, dChain.cd - newTier * 0.5);
+      allianceState.skillCd[1] = dInterval;
+      const dDmg = dChain.baseDmg * newTier * allianceState.skillDmgMul * upgrades.dmgMul;
+      const dGolden = dChain.tiers[newTier-1]?.golden;
+      const dColor = dGolden ? 0xfde047 : parseInt(dChain.color.replace('#',''), 16);
+      const dSplashR = 8 + newTier * 1.6;
+      const dFwd = new THREE.Vector3(); camera.getWorldDirection(dFwd); dFwd.y = 0; dFwd.normalize();
+      const dBaseAngle = Math.atan2(dFwd.x, dFwd.z);
+      const dSpread = (Math.random() - 0.5) * Math.PI * 0.65;
+      const dDist = 4 + Math.random() * 4;
+      const dPos = new THREE.Vector3(
+        player.pos.x + Math.sin(dBaseAngle + dSpread) * dDist, 0,
+        player.pos.z + Math.cos(dBaseAngle + dSpread) * dDist
+      );
+      const dPd = Math.sqrt(dPos.x*dPos.x + dPos.z*dPos.z);
+      if (dPd > ARENA_RADIUS - 3) { dPos.x *= (ARENA_RADIUS-3)/dPd; dPos.z *= (ARENA_RADIUS-3)/dPd; }
+      spawnTurret(dPos, dColor, dSplashR, newTier, dDmg, dGolden);
+      spawnSummonBeam(dPos, dColor, dGolden);
+      showFloat('🔫 毁灭者部署!', dGolden ? '#fde047' : '#ef4444');
     }
     showFloat(`获得: ${opt.icon} ${opt.name}`, opt.golden ? '#fde047' : '#a78bfa');
   } else {
@@ -2486,28 +2568,46 @@ pickPromptEl.addEventListener('click', () => {
 
 function renderSkillBar() {
   skillBarEl.innerHTML = '';
-  // 联盟技能按钮
   for (let i=0; i<3; i++) {
     const sk = allianceState.skills[i];
     const tier = allianceState.skillTier[i];
     const cd = allianceState.skillCd[i];
     const chain = ALLIANCE.tactical[i];
-    const cfgKeyCode = CONFIG[`skillKey${i+1}`] || chain.key;
-    const keyLabel = keyCodeToLabel(cfgKeyCode);
+    if (!sk) continue; // 未获得的不显示
+    const isGolden = tier > 0 && chain.tiers[tier-1]?.golden;
+    const isPassive = chain.passive;
     const slot = document.createElement('div');
-    const isGolden = sk && tier > 0 && chain.tiers[tier-1]?.golden;
-    const isReady = sk && cd <= 0;
-    slot.className = 'sk-slot' + (sk ? ' active' : '') + (isReady ? ' ready' : '') + (isGolden ? ' golden' : '');
-    if (sk) {
-      const isPassive = chain.passive;
+    if (isPassive) {
+      // 被动技能：无底板，纯图标+圆形CD扇形遮罩
+      slot.className = 'sk-passive' + (isGolden ? ' golden' : '');
+      const maxCd = Math.max(5, chain.cd - tier * 0.5);
+      if (cd > 0) {
+        const pct = cd / maxCd; // 1=刚开始CD, 0=结束
+        const deg = Math.round(pct * 360);
+        slot.innerHTML = `
+          <div class="sk-cd-sweep" style="background:conic-gradient(rgba(0,0,0,0.7) ${deg}deg, transparent ${deg}deg);"></div>
+          <div class="sk-icon" style="opacity:0.5;">${chain.icon}</div>
+          <div class="sk-name">${chain.name} ${tier}</div>
+          <div class="sk-cd-text">${Math.ceil(cd)}s</div>
+        `;
+      } else {
+        slot.innerHTML = `
+          <div class="sk-icon">${chain.icon}</div>
+          <div class="sk-name">${chain.name} ${tier}</div>
+          <div class="sk-passive-ready">●</div>
+        `;
+      }
+    } else {
+      const cfgKeyCode = CONFIG[`skillKey${i+1}`] || chain.key;
+      const keyLabel = keyCodeToLabel(cfgKeyCode);
+      const isReady = cd <= 0;
+      slot.className = 'sk-slot active' + (isReady ? ' ready' : '') + (isGolden ? ' golden' : '');
       slot.innerHTML = `
-        ${isPassive ? '<div class="sk-key" style="color:#fb923c;">被动</div>' : `<div class="sk-key">[${keyLabel}]</div>`}
+        <div class="sk-key">[${keyLabel}]</div>
         <div class="sk-icon">${chain.icon}</div>
         <div class="sk-name">${chain.name} ${tier}</div>
         ${cd > 0 ? `<div class="sk-cd-overlay">${Math.ceil(cd)}s</div>` : ''}
       `;
-    } else {
-      slot.innerHTML = `<div class="sk-key">[${keyLabel}]</div><div style="font-size:10px;color:#475569;">空</div>`;
     }
     skillBarEl.appendChild(slot);
   }
@@ -3205,6 +3305,8 @@ function tickSkillCooldowns(dt) {
   }
   // 榴弹轰炸被动自动触发
   tickPassiveBarrage(dt);
+  // 毁灭者被动自动部署
+  tickPassiveDestroyer(dt);
   // 机枪哨卫被动自动召唤
   tickPassiveSentry(dt);
 }
@@ -3298,6 +3400,77 @@ function tickPassiveSentry(dt) {
   spawnSummonBeam(player.pos.clone(), color, isGolden);
 
   allianceState.skillCd[2] = interval;
+}
+
+let _destroyerPassiveTimer = 0;
+function tickPassiveDestroyer(dt) {
+  const sk = allianceState.skills[1]; // 毁灭者 = 索引1
+  if (!sk) return;
+  const tier = allianceState.skillTier[1];
+  if (tier <= 0) return;
+  const chain = ALLIANCE.tactical[1];
+  const interval = Math.max(5, chain.cd - tier * 0.5);
+  _destroyerPassiveTimer += dt;
+  if (_destroyerPassiveTimer < interval) return;
+  _destroyerPassiveTimer = 0;
+
+  // 检查炮台上限
+  if (turrets.length >= allianceState.turretMax) {
+    allianceState.skillCd[1] = interval;
+    return;
+  }
+
+  // 在玩家周围随机选取位置部署炮台
+  const dmg = chain.baseDmg * tier * allianceState.skillDmgMul * upgrades.dmgMul;
+  const isGolden = chain.tiers[tier-1]?.golden;
+  const color = isGolden ? 0xfde047 : parseInt(chain.color.replace('#',''), 16);
+  const splashR = 8 + tier * 1.6;
+
+  // 在玩家前方区域部署炮台（视线方向±60°扇形）
+  const fwd = new THREE.Vector3();
+  camera.getWorldDirection(fwd);
+  fwd.y = 0; fwd.normalize();
+  const baseAngle = Math.atan2(fwd.x, fwd.z);
+  const spread = (Math.random() - 0.5) * Math.PI * 0.65; // ±58°
+  const angle = baseAngle + spread;
+  const dist = 4 + Math.random() * 4;
+  const pos = new THREE.Vector3(
+    player.pos.x + Math.sin(angle) * dist,
+    0,
+    player.pos.z + Math.cos(angle) * dist
+  );
+  // 限制在竞技场内
+  const pDist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+  if (pDist > ARENA_RADIUS - 3) {
+    pos.x *= (ARENA_RADIUS - 3) / pDist;
+    pos.z *= (ARENA_RADIUS - 3) / pDist;
+  }
+
+  spawnTurret(pos, color, splashR, tier, dmg, isGolden);
+  spawnSummonBeam(pos, color, isGolden);
+  showFloat('🔫 毁灭者部署!', isGolden ? '#fde047' : '#ef4444');
+
+  // Tier 7: 一次召唤两个炮台
+  if (tier >= 7 && turrets.length < allianceState.turretMax) {
+    const spread2 = (Math.random() - 0.5) * Math.PI * 0.65;
+    const angle2 = baseAngle + spread2;
+    const dist2 = 4 + Math.random() * 4;
+    const pos2 = new THREE.Vector3(
+      player.pos.x + Math.sin(angle2) * dist2,
+      0,
+      player.pos.z + Math.cos(angle2) * dist2
+    );
+    const pDist2 = Math.sqrt(pos2.x * pos2.x + pos2.z * pos2.z);
+    if (pDist2 > ARENA_RADIUS - 3) {
+      pos2.x *= (ARENA_RADIUS - 3) / pDist2;
+      pos2.z *= (ARENA_RADIUS - 3) / pDist2;
+    }
+    spawnTurret(pos2, color, splashR, tier, dmg, isGolden);
+    spawnSummonBeam(pos2, color, isGolden);
+  }
+
+  allianceState.skillCd[1] = interval;
+  renderSkillBar();
 }
 
 
@@ -3684,6 +3857,7 @@ function startGame() {
   weaponSkillActive = [0, 0, 0];
   resetAllianceState();
   _barragePassiveTimer = 0;
+  _destroyerPassiveTimer = 0;
   _sentryPassiveTimer = 0;
   renderSkillBar();
   renderPickButton();
@@ -4120,15 +4294,47 @@ function update(dt) {
       // 自爆丧尸：大范围爆炸
       if (ud.type === 'bomber') {
         const r = ENEMY_TYPES.bomber.explodeRadius;
-        spawnSkillExplosion(e.position.clone(), 0xff4500, r, false);
+        const ePos = e.position.clone();
+        // 多层爆炸视觉
+        spawnSkillExplosion(ePos, 0xff4500, r, true);
+        spawnSkillExplosion(ePos, 0xfbbf24, r*0.6, false);
         Audio.explosion();
-        if (player.pos.distanceTo(e.position) < r) {
-          const bDmg = ud.dmg;
+        // 地面冲击波环
+        const shockRing = new THREE.Mesh(
+          new THREE.RingGeometry(0.5, 1.5, 32),
+          new THREE.MeshBasicMaterial({ color:0xff6b00, transparent:true, opacity:0.7, side:THREE.DoubleSide })
+        );
+        shockRing.rotation.x = -Math.PI/2;
+        shockRing.position.copy(ePos); shockRing.position.y = 0.15;
+        scene.add(shockRing);
+        let st = 0;
+        const shockAnim = () => {
+          st += 0.04;
+          shockRing.scale.setScalar(1 + st * r * 1.2);
+          shockRing.material.opacity = Math.max(0, 0.7 - st * 0.8);
+          if (st < 1) requestAnimationFrame(shockAnim);
+          else scene.remove(shockRing);
+        };
+        shockAnim();
+        // 强烈爆炸闪光
+        const bigFlash = new THREE.PointLight(0xff4500, 8, r * 2);
+        bigFlash.position.copy(ePos); bigFlash.position.y += 1;
+        scene.add(bigFlash);
+        setTimeout(() => scene.remove(bigFlash), 250);
+        // 距离衰减伤害
+        const dToPlayer = player.pos.distanceTo(ePos);
+        if (dToPlayer < r) {
+          const falloff = 1 - (dToPlayer / r);
+          const bDmg = Math.floor(ud.dmg * falloff);
           let dmgToHp = bDmg;
           if (gameState.shield > 0) { const ab = Math.min(gameState.shield, bDmg); gameState.shield -= ab; dmgToHp -= ab; }
           if (dmgToHp > 0) gameState.hp -= dmgToHp;
+          // 爆炸击退
+          const kb = new THREE.Vector3().subVectors(player.pos, ePos).setY(0).normalize();
+          const kbForce = 8 * falloff;
+          player.vel.x += kb.x * kbForce; player.vel.z += kb.z * kbForce;
         }
-        explode(e.position, false); scene.remove(e); enemies.splice(i,1);
+        explode(ePos, true); scene.remove(e); enemies.splice(i,1);
         flashDamage(); refreshHUD();
         if (gameState.hp <= 0) { gameOver(); return; }
         continue;

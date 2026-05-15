@@ -1236,12 +1236,12 @@ const Audio = {
 
 /* ================= 武器系统（两枪一近战） ================= */
 const WEAPONS = [
-  { id:'rifle', name:'突击步枪', key:'1', cooldown:0.12, dmg:0.5, unlocked:true, color:0xfde047,
+  { id:'rifle', name:'突击步枪', key:'1', cooldown:0.12, dmg:0.25, unlocked:true, color:0xfde047,
     skillName:'集中射击', skillDesc:'射速翻倍，持续3s', skillCd:8, skillDur:3 },
-  { id:'shotgun', name:'霰弹枪', key:'2', cooldown:0.6, dmg:0.75, unlocked:true, color:0xfb923c,
+  { id:'shotgun', name:'霰弹枪', key:'2', cooldown:0.6, dmg:0.375, unlocked:true, color:0xfb923c,
     pellets:6, spread:0.12,
     skillName:'爆裂弹', skillDesc:'下一发伤害×3并击退', skillCd:10, skillDur:0.8 },
-  { id:'blade', name:'能量刀', key:'3', cooldown:0.3, dmg:2, unlocked:true, color:0x22d3ee,
+  { id:'blade', name:'能量刀', key:'3', cooldown:0.3, dmg:1, unlocked:true, color:0x22d3ee,
     melee:true, meleeRange:3.5, speedBonus:1.4 },
 ];
 let currentWeapon = 0;
@@ -1646,19 +1646,19 @@ const enemies = [];
 // 分类：fodder=炮灰, captain=队长, elite=精英
 const ENEMY_TYPES = {
   // === 炮灰 ===
-  zombie:    { cat:'fodder', name:'月球丧尸',     color:0xef4444, size:1.0, hp:1, speed:4.4, gold:4, score:8,   fly:false, dmg:10 },
-  bomber:    { cat:'fodder', name:'自爆丧尸',     color:0xfb923c, size:0.9, hp:1, speed:4.8, gold:5, score:10,  fly:false, dmg:25, explodeRadius:8 },
-  fatso:     { cat:'fodder', name:'胖子丧尸',     color:0x78716c, size:1.8, hp:5, speed:2.4, gold:8, score:15,  fly:false, dmg:15 },
-  swarm:     { cat:'fodder', name:'虫潮基底',     color:0x84cc16, size:0.5, hp:0.5, speed:5.6, gold:2, score:4, fly:false, dmg:5 },
+  zombie:    { cat:'fodder', name:'月球丧尸',     color:0xef4444, size:1.0, hp:3, speed:1.1, gold:4, score:8,   fly:false, dmg:10 },
+  bomber:    { cat:'fodder', name:'自爆丧尸',     color:0xfb923c, size:0.9, hp:3, speed:1.2, gold:5, score:10,  fly:false, dmg:25, explodeRadius:8 },
+  fatso:     { cat:'fodder', name:'胖子丧尸',     color:0x78716c, size:1.8, hp:15, speed:0.6, gold:8, score:15,  fly:false, dmg:15 },
+  swarm:     { cat:'fodder', name:'虫潮基底',     color:0x84cc16, size:0.5, hp:1.5, speed:5.6, gold:2, score:4, fly:false, dmg:5 },
   // === 队长 ===
-  medic:     { cat:'captain', name:'医疗特种队长', color:0x22c55e, size:1.2, hp:4, speed:2.8, gold:25, score:40, fly:false, dmg:8, ranged:true, healAura:true },
-  shielder:  { cat:'captain', name:'护盾特种队长', color:0x3b82f6, size:1.2, hp:4, speed:2.8, gold:25, score:40, fly:false, dmg:8, ranged:true, shieldAura:true },
+  medic:     { cat:'captain', name:'医疗特种队长', color:0x22c55e, size:1.2, hp:12, speed:0.7, gold:25, score:40, fly:false, dmg:8, ranged:true, healAura:true },
+  shielder:  { cat:'captain', name:'护盾特种队长', color:0x3b82f6, size:1.2, hp:12, speed:0.7, gold:25, score:40, fly:false, dmg:8, ranged:true, shieldAura:true },
   // === 精英 ===
-  assassin:  { cat:'elite', name:'刺客精英', color:0xec4899, size:0.8, hp:3, speed:9.6, gold:35, score:60,  fly:false, dmg:20, dashFreq:3 },
-  tankElite: { cat:'elite', name:'坦克精英', color:0x525252, size:2.2, hp:15, speed:2.0, gold:40, score:70, fly:false, dmg:18, dashFreq:8 },
-  rangedElite:{ cat:'elite', name:'远程精英', color:0x8b5cf6, size:1.0, hp:3, speed:3.2, gold:35, score:60, fly:true, dmg:12, laserBall:true },
+  assassin:  { cat:'elite', name:'刺客精英', color:0xec4899, size:0.8, hp:9, speed:9.6, gold:35, score:60,  fly:false, dmg:20, dashFreq:3 },
+  tankElite: { cat:'elite', name:'坦克精英', color:0x525252, size:2.2, hp:45, speed:0.5, gold:40, score:70, fly:false, dmg:18, dashFreq:8 },
+  rangedElite:{ cat:'elite', name:'远程精英', color:0x8b5cf6, size:1.0, hp:9, speed:0.8, gold:35, score:60, fly:true, dmg:12, laserBall:true },
   // Boss
-  boss:      { cat:'boss', name:'BOSS', color:0xdc2626, size:3.0, hp:50, speed:2.16, gold:120, score:200, fly:false, dmg:30, isBoss:true },
+  boss:      { cat:'boss', name:'BOSS', color:0xdc2626, size:3.0, hp:75, speed:0.54, gold:120, score:200, fly:false, dmg:30, isBoss:true },
 };
 
 const ENEMY_NAME_MAP = {};
@@ -3424,7 +3424,7 @@ function triggerFullScreenBomb() {
   // 阶段3：触发伤害（1.4s时，爆炸后一瞬间）
   setTimeout(() => {
     const waveMul = 1 + (gameState.wave - 1) * 0.15;
-    const bombDmg = 3 * waveMul;
+    const bombDmg = 8 * waveMul;
     const list = enemies.slice();
     let killCount = 0;
     list.forEach(e => {
@@ -3719,12 +3719,14 @@ function buildWaveQueue(wave) {
       // 队长：医疗/护盾
       queue.push(Math.random() < 0.5 ? 'medic' : 'shielder');
     } else {
-      // 炮灰：按比例分配
-      const fodderRnd = Math.random();
-      if (fodderRnd < 0.35) queue.push('zombie');       // 35% 普通丧尸
-      else if (fodderRnd < 0.55) queue.push('swarm');    // 20% 虫潮
-      else if (fodderRnd < 0.75) queue.push('bomber');   // 20% 自爆丧尸
-      else queue.push('fatso');                           // 25% 胖子
+      // 炮灰：按比例分配（权重）
+      const fz = 55, fs = 20, fb = 40, ff = 5; // zombie55 swarm20 bomber40 fatso5
+      const fTotal = fz + fs + fb + ff;
+      const fodderRnd = Math.random() * fTotal;
+      if (fodderRnd < fz) queue.push('zombie');              // 45.8%
+      else if (fodderRnd < fz+fs) queue.push('swarm');       // 16.7%
+      else if (fodderRnd < fz+fs+fb) queue.push('bomber');   // 33.3%
+      else queue.push('fatso');                               // 4.2%
     }
   }
   // 洗牌

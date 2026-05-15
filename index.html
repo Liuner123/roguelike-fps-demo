@@ -317,12 +317,12 @@
     font-size:64px; transform:translateY(-50%);
     filter:drop-shadow(0 0 20px rgba(255,50,50,0.8)); }
   @keyframes missileFly {
-    0% { left:-120px; top:48%; transform:translateY(-50%) rotate(-5deg); }
-    40% { left:45%; top:42%; transform:translateY(-50%) rotate(0deg); }
-    60% { left:50%; top:50%; transform:translateY(-50%) scale(1.3) rotate(0deg); }
-    100% { left:50%; top:50%; transform:translateY(-50%) scale(60) rotate(0deg); opacity:0; }
+    0% { left:-120px; top:48%; transform:translateY(-50%) rotate(-5deg); opacity:1; }
+    50% { left:46%; top:46%; transform:translateY(-50%) rotate(0deg); opacity:1; }
+    80% { left:50%; top:50%; transform:translateY(-50%) scale(1.5); opacity:1; }
+    100% { left:50%; top:50%; transform:translateY(-50%) scale(2); opacity:0; }
   }
-  .missile-sprite.fly { animation:missileFly 1.6s cubic-bezier(0.22,0.61,0.36,1) forwards; }
+  .missile-sprite.fly { animation:missileFly 1s ease-in forwards; }
   /* 爆炸闪白 */
   .missile-flash { position:absolute; inset:0; z-index:4; opacity:0;
     background:radial-gradient(circle,rgba(255,220,80,0.95),rgba(255,80,30,0.6),transparent 70%); }
@@ -3393,59 +3393,69 @@ function triggerFullScreenBomb() {
   title.classList.remove('show');
   void overlay.offsetWidth;
 
-  // 阶段1：电影黑条 + 导弹飞入（0~1.6s）
+  // 阶段1：电影黑条 + 导弹飞入
   overlay.classList.add('active');
-  Audio.beep({ freq:200, type:'sawtooth', duration:0.4, volume:0.3, slideTo:800 });
-  setTimeout(() => Audio.beep({ freq:400, type:'triangle', duration:0.3, volume:0.2, slideTo:1200 }), 300);
+  Audio.beep({ freq:200, type:'sawtooth', duration:0.3, volume:0.25, slideTo:800 });
 
-  // 导弹开始飞
-  setTimeout(() => {
-    sprite.classList.add('fly');
-    Audio.beep({ freq:120, type:'sawtooth', duration:1.2, volume:0.35, slideTo:600 });
-  }, 300);
+  setTimeout(() => { sprite.classList.add('fly'); }, 100);
+  setTimeout(() => { title.classList.add('show'); }, 100);
 
-  // 标题出现
-  setTimeout(() => {
-    title.classList.add('show');
-  }, 200);
-
-  // 阶段2：爆炸闪白（1.2s时）
+  // 阶段2：爆炸（0.8s时）
   setTimeout(() => {
     flash.classList.add('fire');
     Audio.explosion();
-    Audio.noise({ duration:0.8, volume:0.6, filterFreq:400 });
-    setTimeout(() => Audio.explosion(), 150);
 
-    // 3D场景爆炸
-    spawnSkillExplosion(player.pos.clone(), 0xff3333, ARENA_RADIUS, true);
-    spawnSkillExplosion(player.pos.clone(), 0xfde047, ARENA_RADIUS * 0.6, false);
-  }, 1200);
+    // 仅一个闪光，无3D粒子
+    const bombFlash = new THREE.PointLight(0xff4500, 8, 50);
+    bombFlash.position.copy(player.pos); bombFlash.position.y += 2;
+    scene.add(bombFlash);
+    setTimeout(() => scene.remove(bombFlash), 300);
+  }, 800);
 
-  // 阶段3：触发伤害（1.4s时，爆炸后一瞬间）
+  // 阶段3：触发伤害（1.0s时，分帧击杀）
   setTimeout(() => {
     const waveMul = 1 + (gameState.wave - 1) * 0.15;
     const bombDmg = 8 * waveMul;
     const list = enemies.slice();
     let killCount = 0;
-    list.forEach(e => {
-      if (!e.userData || !e.userData.alive) return;
-      if (e.userData.isBoss) {
-        damageEnemy(e, e.userData.maxHp * 0.15);
-        showFloat('🚀 Boss -15%', '#ff3333');
-      } else {
-        damageEnemy(e, bombDmg);
-        if (e.userData.hp <= 0) {
-          killEnemy(e);
-          killCount++;
+    let idx = 0;
+    const batchKill = () => {
+      const batchEnd = Math.min(idx + 8, list.length);
+      for (; idx < batchEnd; idx++) {
+        const e = list[idx];
+        if (!e.userData || !e.userData.alive) continue;
+        if (e.userData.isBoss) {
+          damageEnemy(e, e.userData.maxHp * 0.15);
+        } else {
+          damageEnemy(e, bombDmg);
+          if (e.userData.hp <= 0) {
+            // 轻量击杀：不播单独爆炸特效
+            e.userData.alive = false;
+            scene.remove(e);
+            const ei = enemies.indexOf(e); if (ei >= 0) enemies.splice(ei, 1);
+            gameState.kills++;
+            gameState.score += e.userData.score;
+            gameState.gold += Math.floor(e.userData.gold * allianceState.goldMul);
+            const expGain = Math.max(1, Math.floor(e.userData.score * 0.3 * allianceState.expMul));
+            addExp(expGain);
+            killCount++;
+          }
         }
       }
-    });
-    if (killCount > 0) {
-      showFloat(`🚀 轰炸清除 ${killCount} 只！`, '#ff3333');
-    }
+      if (idx < list.length) {
+        requestAnimationFrame(batchKill);
+      } else {
+        if (killCount > 0) {
+          showFloat(`🚀 轰炸清除 ${killCount} 只！`, '#ff3333');
+          Audio.kill();
+        }
+        refreshHUD(); renderWeaponBar();
+      }
+    };
+    batchKill();
   }, 1400);
 
-  // 阶段4：清理演出（2.2s时）
+  // 阶段4：清理演出（1.5s时）
   setTimeout(() => {
     overlay.classList.remove('active');
     sprite.classList.remove('fly');
@@ -3453,7 +3463,7 @@ function triggerFullScreenBomb() {
     title.classList.remove('show');
     // 重置sprite位置
     sprite.style.left = '-120px';
-  }, 2200);
+  }, 1500);
 }
 
 function spawnSkillExplosion(pos, color, radius, isGolden) {

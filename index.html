@@ -684,9 +684,12 @@
 
 <!-- Boss 血条（顶部居中） -->
 <div id="bossHpBar">
-  <div class="boss-hp-title">💀 <span id="bossName">BOSS</span></div>
+  <div class="boss-hp-title">💀 <span id="bossName">BOSS</span> <span id="bossSkillTag" style="font-size:12px;color:#fde047;margin-left:8px;"></span></div>
   <div class="boss-hp-track"><div class="boss-hp-fill" id="bossHpFill"></div>
     <span class="boss-hp-text" id="bossHpText">0 / 0</span>
+  </div>
+  <div class="boss-shield-track" id="bossShieldTrack" style="display:none;position:relative;height:8px;background:rgba(0,0,0,0.5);border-radius:4px;overflow:hidden;margin-top:3px;border:1px solid #3b82f6;">
+    <div id="bossShieldFill" style="height:100%;width:100%;background:linear-gradient(90deg,#3b82f6,#60a5fa);transition:width .3s;border-radius:4px;"></div>
   </div>
 </div>
 
@@ -751,7 +754,7 @@ import * as THREE from 'three';
 /* ================= 可配置参数 ================= */
 const CONFIG = {
   // —— 休整 —— 
-  restEveryNWaves: 5,    // 每 N 波后进入一次休整期
+  restEveryNWaves: 3,    // 每 N 波后进入一次休整期
   restDuration:    20,   // 休整时长（秒）
   bossWave:        25,   // 第几波进入 Boss 阶段（第二阶段）
   bossUnlockWave:  15,   // 第几波开始出现 Boss 门（可提前挑战）
@@ -2005,6 +2008,22 @@ function refreshHUD() {
     const bHp = Math.max(0, bd.hp);
     if (ui.bossHpFill) ui.bossHpFill.style.width = (bHp / bd.maxHp * 100) + '%';
     if (ui.bossHpText) ui.bossHpText.textContent = `${Math.ceil(bHp)} / ${Math.ceil(bd.maxHp)}`;
+    // Boss 护盾条
+    const shieldTrack = document.getElementById('bossShieldTrack');
+    const shieldFill = document.getElementById('bossShieldFill');
+    const skillTag = document.getElementById('bossSkillTag');
+    if (bd._shieldActive) {
+      shieldTrack.style.display = 'block';
+      shieldFill.style.width = '100%';
+      if (skillTag) skillTag.textContent = '🛡️ 护盾';
+    } else {
+      shieldTrack.style.display = 'none';
+      // 显示当前技能
+      if (skillTag) {
+        const names = ['追踪','冲撞','召唤','践踏'];
+        skillTag.textContent = names[bd._skillPhase] || '';
+      }
+    }
   } else {
     if (ui.bossHpBar) ui.bossHpBar.classList.remove('show');
   }
@@ -2182,11 +2201,11 @@ const ALLIANCE = {
         { desc:'附近5m内每个毁灭者炮台+20%伤害', golden:false },
         { desc:'过载后的炮台可以同时向3个目标发射激光', golden:true },
       ]},
-    { id:'sentry', name:'机枪哨卫', icon:'🚁', key:'6', color:'#a78bfa', cd:10, baseDmg:1.5,
+    { id:'sentry', name:'机枪哨卫', icon:'🚁', key:'6', color:'#a78bfa', cd:10, baseDmg:1.5, passive:true,
       tiers: [
-        { desc:'机枪无人机存在上限+1', golden:false },
+        { desc:'获得机枪哨卫被动：每10s自动召唤一架无人机(上限1)', golden:false },
         { desc:'枪械命中50次召唤临时无人机(50%伤害,15s,上限5)', golden:false },
-        { desc:'机枪无人机存在上限+1', golden:false },
+        { desc:'无人机存在上限+1', golden:false },
         { desc:'给无人机装填高能弹药(发光子弹)，伤害翻倍', golden:true },
         { desc:'临时无人机持续时间变为30s', golden:false },
         { desc:'受致命伤害时回收所有哨卫(>5架)，每架治疗10HP(CD60s)', golden:false },
@@ -3168,6 +3187,8 @@ function tickSkillCooldowns(dt) {
   }
   // 榴弹轰炸被动自动触发
   tickPassiveBarrage(dt);
+  // 机枪哨卫被动自动召唤
+  tickPassiveSentry(dt);
 }
 
 let _barragePassiveTimer = 0;
@@ -3231,6 +3252,34 @@ function tickPassiveBarrage(dt) {
   }
 
   allianceState.skillCd[0] = interval;
+}
+
+let _sentryPassiveTimer = 0;
+function tickPassiveSentry(dt) {
+  const sk = allianceState.skills[2]; // 机枪哨卫 = 索引2
+  if (!sk) return;
+  const tier = allianceState.skillTier[2];
+  if (tier <= 0) return;
+  const chain = ALLIANCE.tactical[2];
+  const interval = Math.max(4, chain.cd - tier * 0.5); // 随等级加快
+  _sentryPassiveTimer += dt;
+  if (_sentryPassiveTimer < interval) return;
+  _sentryPassiveTimer = 0;
+
+  // 检查无人机上限
+  if (drones.length >= allianceState.droneMax) {
+    allianceState.skillCd[2] = interval;
+    return;
+  }
+
+  // 自动召唤无人机
+  const dmg = chain.baseDmg * tier * allianceState.skillDmgMul * upgrades.dmgMul;
+  const isGolden = chain.tiers[tier-1]?.golden;
+  const color = isGolden ? 0xfde047 : parseInt(chain.color.replace('#',''), 16);
+  spawnDrone(color, tier, dmg, isGolden);
+  spawnSummonBeam(player.pos.clone(), color, isGolden);
+
+  allianceState.skillCd[2] = interval;
 }
 
 
@@ -3344,10 +3393,12 @@ function spawnFinalBoss() {
     size: bossSize, alive: true,
     // Boss 技能计时器
     _skillTimer: 0,
-    _skillPhase: 0, // 0=追踪, 1=冲撞, 2=召唤, 3=践踏
+    _skillPhase: 0,
+    _skillFired: false,
     _chargeDir: null,
     _chargeTime: 0,
     _shieldActive: false,
+    _shieldDuration: 0,
     _shieldCd: 0,
   };
   scene.add(bossGroup);
@@ -3358,6 +3409,10 @@ function spawnFinalBoss() {
   if (ui.bossName) ui.bossName.textContent = '毁灭核心';
   setMsg('💀 毁灭核心 💀', 2000, '#ef4444');
   Audio.noise({ duration:0.8, volume:0.5, filterFreq:400 });
+  // 强制隐藏休整面板
+  gameState.resting = false;
+  gameState.restTimer = 0;
+  restEl.classList.remove('show');
 }
 
 /* ================= Boss 技能 AI ================= */
@@ -3368,75 +3423,137 @@ function updateBossAI(dt) {
   ud._skillTimer += dt;
   if (ud._shieldCd > 0) ud._shieldCd -= dt;
 
-  // 每10秒切换技能
-  if (ud._skillTimer > 10) {
-    ud._skillTimer = 0;
-    ud._skillPhase = (ud._skillPhase + 1) % 4;
-    // 血量低于50%时激活护盾
-    if (ud.hp < ud.maxHp * 0.5 && ud._shieldCd <= 0) {
-      ud._shieldActive = true;
-      ud._shieldCd = 30;
-      setMsg('💀 毁灭核心激活护盾！', 1500, '#3b82f6');
-      setTimeout(() => { ud._shieldActive = false; }, 5000);
+  // 护盾计时
+  if (ud._shieldActive) {
+    ud._shieldDuration -= dt;
+    if (ud._shieldDuration <= 0) {
+      ud._shieldActive = false;
+      setMsg('💀 护盾消失', 800, '#94a3b8');
+      // 移除视觉护盾
+      boss.children.forEach(c => { if (c.userData?._isShield) { boss.remove(c); } });
     }
   }
 
+  // 血量低于50%且CD好了就激活护盾
+  if (ud.hp < ud.maxHp * 0.5 && ud._shieldCd <= 0 && !ud._shieldActive) {
+    ud._shieldActive = true;
+    ud._shieldDuration = 5;
+    ud._shieldCd = 30;
+    setMsg('💀 毁灭核心激活护盾！', 1500, '#3b82f6');
+    Audio.beep({ freq:300, type:'sine', duration:0.4, volume:0.3, slideTo:600 });
+    // 视觉：蓝色护盾球
+    const shieldMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(ud.size * 0.8, 16, 16),
+      new THREE.MeshBasicMaterial({ color:0x3b82f6, transparent:true, opacity:0.25, side:THREE.DoubleSide })
+    );
+    shieldMesh.userData._isShield = true;
+    boss.add(shieldMesh);
+  }
+
+  // 每7秒切换技能阶段：0追踪 → 1冲撞 → 2召唤 → 3践踏 → 0...
+  if (ud._skillTimer > 7) {
+    ud._skillTimer = 0;
+    ud._skillPhase = (ud._skillPhase + 1) % 4;
+    ud._skillFired = false; // 标记本阶段技能未释放
+  }
+
   const phase = ud._skillPhase;
+
   if (phase === 1) {
-    // 冲撞：快速冲向玩家
+    // === 冲撞 ===
     if (!ud._chargeDir) {
       ud._chargeDir = new THREE.Vector3().subVectors(player.pos, boss.position).setY(0).normalize();
       ud._chargeTime = 1.5;
       setMsg('💀 冲撞！', 1000, '#ef4444');
       Audio.beep({ freq:150, type:'sawtooth', duration:0.3, volume:0.3, slideTo:80 });
+      // 预警线
+      spawnSkillExplosion(boss.position.clone(), 0xef4444, 2, false);
     }
     ud._chargeTime -= dt;
     boss.position.x += ud._chargeDir.x * 25 * dt;
     boss.position.z += ud._chargeDir.z * 25 * dt;
-    // 冲撞路径上的伤害
-    if (boss.position.distanceTo(player.pos) < ud.size && !CONFIG.godMode) {
-      gameState.hp -= 20;
+    // 碰撞竞技场边界停止
+    const bDist = Math.sqrt(boss.position.x**2 + boss.position.z**2);
+    if (bDist > ARENA_RADIUS - WALL_THICKNESS - ud.size) {
+      ud._chargeDir = null; ud._chargeTime = 0; ud._skillPhase = 0;
+      spawnSkillExplosion(boss.position.clone(), 0xef4444, 4, true);
+      Audio.explosion();
+    }
+    // 碰到玩家
+    if (boss.position.distanceTo(player.pos) < ud.size + 1 && !CONFIG.godMode) {
+      gameState.hp -= 8;
       flashDamage();
+      const kb = new THREE.Vector3().subVectors(player.pos, boss.position).setY(0).normalize();
+      player.vel.x += kb.x * 10; player.vel.z += kb.z * 10;
       refreshHUD();
     }
     if (ud._chargeTime <= 0) { ud._chargeDir = null; ud._skillPhase = 0; }
-  } else if (phase === 2 && ud._skillTimer < 0.1) {
-    // 召唤小怪
-    setMsg('💀 召唤尸潮！', 1200, '#ef4444');
-    Audio.noise({ duration:0.3, volume:0.3, filterFreq:300 });
-    for (let i = 0; i < 6; i++) {
+
+  } else if (phase === 2 && !ud._skillFired) {
+    // === 召唤尸潮 ===
+    ud._skillFired = true;
+    setMsg('💀 召唤尸潮！', 1500, '#a855f7');
+    Audio.noise({ duration:0.4, volume:0.4, filterFreq:300 });
+    // 召唤光环特效
+    spawnSkillExplosion(boss.position.clone(), 0xa855f7, 8, true);
+    for (let i = 0; i < 8; i++) {
       setTimeout(() => {
-        const angle = Math.random() * Math.PI * 2;
-        const r = 5 + Math.random() * 3;
-        const pos = boss.position.clone();
-        pos.x += Math.cos(angle) * r;
-        pos.z += Math.sin(angle) * r;
-        const types = ['grunt', 'fast', 'grunt'];
+        if (!gameState.bossPhase) return;
+        const angle = (i / 8) * Math.PI * 2;
+        const r = 6 + Math.random() * 2;
+        const sx = boss.position.x + Math.cos(angle) * r;
+        const sz = boss.position.z + Math.sin(angle) * r;
+        const types = ['grunt', 'fast', 'fast', 'grunt'];
         const tk = types[Math.floor(Math.random() * types.length)];
         spawnEnemy(tk, 1 + (gameState.wave - 1) * 0.15);
-        // 把生成的怪移到 Boss 附近
         const spawned = enemies[enemies.length - 1];
-        if (spawned) spawned.position.set(pos.x, spawned.userData.size/2, pos.z);
-      }, i * 200);
+        if (spawned) {
+          spawned.position.set(sx, spawned.userData.size/2, sz);
+          spawnSummonBeam(spawned.position.clone(), 0xa855f7, false);
+        }
+      }, i * 250);
     }
-  } else if (phase === 3 && ud._skillTimer < 0.1) {
-    // AOE 践踏：对周围造成伤害
-    setMsg('💀 践踏！', 1000, '#fb923c');
+
+  } else if (phase === 3 && !ud._skillFired) {
+    // === AOE 践踏 ===
+    ud._skillFired = true;
+    setMsg('💀 践踏！', 1200, '#fb923c');
     Audio.explosion();
-    spawnSkillExplosion(boss.position.clone(), 0xef4444, 10, true);
+    Audio.beep({ freq:80, type:'sawtooth', duration:0.5, volume:0.4, slideTo:30 });
+    // 大范围爆炸视觉
+    spawnSkillExplosion(boss.position.clone(), 0xfb923c, 12, true);
+    // 地面冲击波
+    const waveRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.5, 2, 32),
+      new THREE.MeshBasicMaterial({ color:0xfb923c, transparent:true, opacity:0.6, side:THREE.DoubleSide })
+    );
+    waveRing.rotation.x = -Math.PI/2;
+    waveRing.position.copy(boss.position); waveRing.position.y = 0.1;
+    scene.add(waveRing);
+    let wt = 0;
+    const waveAnim = () => {
+      wt += 0.05;
+      waveRing.scale.setScalar(1 + wt * 8);
+      waveRing.material.opacity = Math.max(0, 0.6 - wt * 0.6);
+      if (wt < 1) requestAnimationFrame(waveAnim);
+      else scene.remove(waveRing);
+    };
+    waveAnim();
+    // 伤害
     if (!CONFIG.godMode) {
       const d = boss.position.distanceTo(player.pos);
-      if (d < 12) {
-        const dmg = Math.floor(25 * (1 - d/12));
-        // 护盾优先
+      if (d < 14) {
+        const dmg = Math.floor(20 * (1 - d/14));
         let dmgToHp = dmg;
         if (gameState.shield > 0) {
           const ab = Math.min(gameState.shield, dmg);
-          gameState.shield -= ab;
-          dmgToHp -= ab;
+          gameState.shield -= ab; dmgToHp -= ab;
         }
         if (dmgToHp > 0) gameState.hp -= dmgToHp;
         flashDamage();
+        // 击退
+        const kb = new THREE.Vector3().subVectors(player.pos, boss.position).setY(0).normalize();
+        player.vel.x += kb.x * 6; player.vel.z += kb.z * 6;
         refreshHUD();
         if (gameState.hp <= 0) gameOver();
       }
@@ -3539,6 +3656,7 @@ function startGame() {
   weaponSkillActive = [0, 0, 0];
   resetAllianceState();
   _barragePassiveTimer = 0;
+  _sentryPassiveTimer = 0;
   renderSkillBar();
   renderPickButton();
   // 重置 Boss 门
@@ -3851,14 +3969,40 @@ function update(dt) {
     e.position.addScaledVector(tmpVec, e.userData.speed * dt);
     e.rotation.y += dt * 1.5;
     e.rotation.x += dt * 0.6;
-    // 攻击玩家（足够近 = 直接扣血并自爆）
+    // 敌人竞技场边界
+    const eDist = Math.sqrt(e.position.x**2 + e.position.z**2);
+    const eMax = ARENA_RADIUS - WALL_THICKNESS - e.userData.size*0.3;
+    if (eDist > eMax && !e.userData.fly) {
+      const eScale = eMax / eDist;
+      e.position.x *= eScale;
+      e.position.z *= eScale;
+    }
+    // 非飞行敌人地形碰撞
+    if (!e.userData.fly) {
+      const er = e.userData.size * 0.4;
+      terrainObjs.forEach(obj => {
+        const box = new THREE.Box3().setFromObject(obj);
+        const cx = Math.max(box.min.x, Math.min(e.position.x, box.max.x));
+        const cz = Math.max(box.min.z, Math.min(e.position.z, box.max.z));
+        const ddx = e.position.x - cx, ddz = e.position.z - cz;
+        const dd2 = ddx*ddx + ddz*ddz;
+        if (dd2 < er*er && dd2 > 0.0001) {
+          const dd = Math.sqrt(dd2);
+          e.position.x += (ddx/dd) * (er - dd);
+          e.position.z += (ddz/dd) * (er - dd);
+        }
+      });
+    }
+    // 攻击玩家（足够近 = 直接扣血）
     const reach = 0.9 + e.userData.size*0.4 + player.radius;
     const distToPlayer = e.position.distanceTo(player.pos);
     if (distToPlayer < reach) {
-      // 无敌模式：不受伤害，仅消灭敌人
+      // 无敌模式：不受伤害，Boss不消灭，普通怪消灭
       if (CONFIG.godMode) {
-        explode(e.position, e.userData.isBoss);
-        scene.remove(e); enemies.splice(i,1);
+        if (!e.userData.isBoss) {
+          explode(e.position, false);
+          scene.remove(e); enemies.splice(i,1);
+        }
         continue;
       }
       const rawDmg = e.userData.isBoss ? 30 : (e.userData.type==='tank'?20:10);
@@ -3868,22 +4012,32 @@ function update(dt) {
         const absorbed = Math.min(gameState.shield, rawDmg);
         gameState.shield -= absorbed;
         dmgToHp -= absorbed;
-        gameState.shieldTimer = gameState.shieldDelay; // 受击后重置回复计时
+        gameState.shieldTimer = gameState.shieldDelay;
       }
       if (dmgToHp > 0) {
         gameState.hp -= dmgToHp;
         gameState.shieldTimer = gameState.shieldDelay;
       }
       Audio.damage();
-      explode(e.position, e.userData.isBoss);
-      scene.remove(e); enemies.splice(i,1);
-      // 受击反馈：屏幕短暂泛红 + 击退
-      flashDamage();
-      const knockDir = new THREE.Vector3().subVectors(player.pos, e.position).setY(0).normalize();
-      player.vel.x += knockDir.x * 4;
-      player.vel.z += knockDir.z * 4;
-      refreshHUD();
-      if (gameState.hp <= 0) { gameOver(); return; }
+      // Boss 碰撞：只击退玩家，不自爆
+      if (e.userData.isBoss) {
+        flashDamage();
+        const knockDir = new THREE.Vector3().subVectors(player.pos, e.position).setY(0).normalize();
+        player.vel.x += knockDir.x * 8;
+        player.vel.z += knockDir.z * 8;
+        refreshHUD();
+        if (gameState.hp <= 0) { gameOver(); return; }
+      } else {
+        // 普通怪：自爆消失
+        explode(e.position, false);
+        scene.remove(e); enemies.splice(i,1);
+        flashDamage();
+        const knockDir = new THREE.Vector3().subVectors(player.pos, e.position).setY(0).normalize();
+        player.vel.x += knockDir.x * 4;
+        player.vel.z += knockDir.z * 4;
+        refreshHUD();
+        if (gameState.hp <= 0) { gameOver(); return; }
+      }
     }
   }
 
@@ -4155,12 +4309,12 @@ loop();
 
 function loadSettings() {
   try {
-    const saved = JSON.parse(localStorage.getItem('cfg_v1') || '{}');
+    const saved = JSON.parse(localStorage.getItem('cfg_v2') || '{}');
     Object.assign(CONFIG, saved);
   } catch (e) {}
 }
 function saveSettings() {
-  try { localStorage.setItem('cfg_v1', JSON.stringify(CONFIG)); } catch (e) {}
+  try { localStorage.setItem('cfg_v2', JSON.stringify(CONFIG)); } catch (e) {}
 }
 
 function bindRange(id, key, valId, fmt = v => Number(v).toFixed(2)) {

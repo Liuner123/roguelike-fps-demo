@@ -775,8 +775,8 @@ const CONFIG = {
   bossUnlockWave:  15,   // 第几波开始出现 Boss 门（可提前挑战）
   maxRevives:      5,    // 阶段一最大复活次数
   // —— 等级 —— 
-  expBase:         50,   // 升到 2 级所需经验
-  expGrowth:       1.35, // 每级所需经验倍率
+  expBase:         30,   // 升到 2 级所需经验
+  expGrowth:       1.18, // 每级所需经验倍率（平滑增长）
   expPerKillBase:  10,   // 普通敌人击杀经验（实际还会乘以敌人价值系数）
   // —— 雷达 —— 
   radarRange:      50,   // 雷达探测半径（世界单位）
@@ -1966,7 +1966,7 @@ const gameState = {
   shield:50, maxShield:50, shieldRegen:3, shieldDelay:4, shieldTimer:0, // 护盾系统
   level:1, exp:0, expNext:CONFIG.expBase,
   spawnTimer:0, spawnInterval:1.4,
-  waveBudget:8, waveSpawned:0, waveClearWait:0,
+  waveBudget:8, waveSpawned:0, waveClearWait:0, _waveGapNotified:false,
   bossPhase:false, bossEntity:null,
   revivesLeft:5, bossGateSpawned:false,
 };
@@ -2126,9 +2126,8 @@ function addExp(amount) {
 }
 function levelUp() {
   gameState.level++;
-  // 前5级经验需求减半
+  // 平滑经验曲线：expBase × expGrowth^(level-1)
   let nextExp = Math.floor(CONFIG.expBase * Math.pow(CONFIG.expGrowth, gameState.level - 1));
-  if (gameState.level <= 5) nextExp = Math.floor(nextExp * 0.5);
   gameState.expNext = nextExp;
   // 升级奖励：满血 + 25 金 + 小幅伤害提升
   upgrades.dmgMul *= 1.05;
@@ -3843,9 +3842,9 @@ function startGame() {
     resting:false, restTimer:0,
     wave:0, kills:0, score:0, gold:0, hp:100,
     shield:50, maxShield:50, shieldRegen:3, shieldDelay:4, shieldTimer:0,
-    level:1, exp:0, expNext:Math.floor(CONFIG.expBase * 0.5),
+    level:1, exp:0, expNext:CONFIG.expBase,
     spawnTimer:0, spawnInterval:1.2,
-    waveBudget:0, waveSpawned:0, waveClearWait:0,
+    waveBudget:0, waveSpawned:0, waveClearWait:0, _waveGapNotified:false,
     bossPhase:false, bossEntity:null,
     revivesLeft:CONFIG.maxRevives, bossGateSpawned:false,
     _spawnBossAfterRest:false, _bossGateFirstShown:false,
@@ -4134,12 +4133,17 @@ function update(dt) {
     }
   } else if (enemies.length === 0) {
     gameState.waveClearWait += dt;
-    if (gameState.waveClearWait > 1.8) {
-      gameState.gold += 30; // 通关奖励
+    const waveGap = 5;
+    const remaining = waveGap - gameState.waveClearWait;
+    if (remaining > 0 && remaining <= 4 && !gameState._waveGapNotified) {
+      gameState._waveGapNotified = true;
+      gameState.gold += 30;
       showFloat('+30 金 通关奖励', '#fbbf24');
-      // 检查是否触发休整（已完成第 N 波，下一波之前休整）
+      onWaveClear(CONFIG.restEveryNWaves > 0 && gameState.wave % CONFIG.restEveryNWaves === 0);
+    }
+    if (gameState.waveClearWait > waveGap) {
+      gameState._waveGapNotified = false;
       const isMajor = CONFIG.restEveryNWaves > 0 && gameState.wave % CONFIG.restEveryNWaves === 0;
-      onWaveClear(isMajor);
       if (isMajor) {
         startRest();
       } else {

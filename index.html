@@ -14,19 +14,19 @@
     background:rgba(0,0,0,0.45); padding:10px 14px; border-radius:10px;
     font-size:13px; line-height:1.7; backdrop-filter:blur(6px);
     border:1px solid rgba(255,255,255,0.08); min-width:160px; max-width:185px; }
-  #hud b { color:#67e8f9; }
+  #hud b { color:#508BF3; }
   #hud .gold { color:#fbbf24; }
   #hud .hp { color:#f87171; }
 
   /* 波次面板（左侧中间） */
   #wavePanel { position:fixed; left:18px; top:50%; transform:translateY(-50%);
     z-index:10; background:rgba(0,0,0,0.55); padding:12px 16px;
-    border-radius:12px; border:1px solid rgba(103,232,249,0.2);
+    border-radius:12px; border:1px solid rgba(80,139,243,0.2);
     backdrop-filter:blur(6px); text-align:center; min-width:100px;
-    box-shadow:0 0 16px rgba(103,232,249,0.1); }
+    box-shadow:0 0 16px rgba(80,139,243,0.1); }
   .wave-label { font-size:11px; color:#94a3b8; letter-spacing:3px; text-transform:uppercase; }
-  .wave-num { font-size:36px; font-weight:bold; color:#67e8f9; line-height:1.1;
-    text-shadow:0 0 12px rgba(103,232,249,0.5); }
+  .wave-num { font-size:36px; font-weight:bold; color:#508BF3; line-height:1.1;
+    text-shadow:0 0 12px rgba(80,139,243,0.5); }
   .wave-num #bossIcon { font-size:24px; vertical-align:middle; }
   .wave-target-line { font-size:13px; color:#94a3b8; margin-top:2px; }
   .wave-target-line b { color:#fde047; }
@@ -34,8 +34,8 @@
     border-radius:3px; overflow:hidden; margin-top:6px;
     border:1px solid rgba(255,255,255,0.12); }
   #wavePanel .wave-bar-fill { height:100%; width:0%;
-    background:linear-gradient(90deg,#67e8f9,#fde047);
-    box-shadow:0 0 6px rgba(103,232,249,0.6);
+    background:linear-gradient(90deg,#508BF3,#fde047);
+    box-shadow:0 0 6px rgba(80,139,243,0.6);
     transition:width .25s ease-out; }
   /* Boss 波次高亮 */
   #wavePanel.boss-near { border-color:rgba(239,68,68,0.5);
@@ -48,14 +48,14 @@
   /* 雷达 */
   #radar { position:fixed; top:12px; left:210px; z-index:10;
     background:rgba(0,0,0,0.55); border-radius:50%;
-    border:2px solid rgba(103,232,249,0.5);
-    box-shadow:0 0 18px rgba(103,232,249,0.25); }
+    border:2px solid rgba(80,139,243,0.5);
+    box-shadow:0 0 18px rgba(80,139,243,0.25); }
 
   /* 右上角设置按钮 */
   #settingsBtn { position:fixed; top:14px; right:18px; z-index:12;
     width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,0.15);
-    background:rgba(0,0,0,0.55); color:#67e8f9; font-size:22px; cursor:pointer;
-    box-shadow:0 0 12px rgba(103,232,249,0.2); transition:all .2s;
+    background:rgba(0,0,0,0.55); color:#508BF3; font-size:22px; cursor:pointer;
+    box-shadow:0 0 12px rgba(80,139,243,0.2); transition:all .2s;
     display:flex; align-items:center; justify-content:center; padding:0; }
   #settingsBtn:hover { background:rgba(8,145,178,0.5); transform:rotate(60deg); }
 
@@ -66,13 +66,13 @@
   #settingsPanel.show { display:flex; }
   .settings-inner { background:#0f172a; border:1px solid #334155;
     border-radius:14px; padding:22px 28px; width:460px; max-width:92vw; }
-  .settings-inner h2 { margin:0 0 14px; color:#67e8f9; letter-spacing:2px; }
+  .settings-inner h2 { margin:0 0 14px; color:#508BF3; letter-spacing:2px; }
   .settings-section { padding:8px 0; border-top:1px solid #1e293b; }
   .settings-section:first-of-type { border-top:none; padding-top:0; }
   .settings-row { display:flex; align-items:center; gap:10px;
     margin:8px 0; font-size:13px; color:#cbd5e1; }
   .settings-row label { width:140px; flex-shrink:0; }
-  .settings-row input[type="range"] { flex:1; accent-color:#67e8f9; }
+  .settings-row input[type="range"] { flex:1; accent-color:#508BF3; }
   .settings-row input[type="number"] { width:80px; padding:4px 8px;
     background:#1e293b; border:1px solid #334155; color:#fff;
     border-radius:4px; font-size:13px; }
@@ -84,9 +84,9 @@
   .btn-secondary:hover { background:#334155; }
 
   .keybind-btn { flex:1; padding:6px 12px; background:#1e293b; border:1px solid #475569;
-    color:#67e8f9; border-radius:4px; font-size:13px; font-family:monospace;
+    color:#508BF3; border-radius:4px; font-size:13px; font-family:monospace;
     cursor:pointer; text-align:center; transition:all .15s; }
-  .keybind-btn:hover { border-color:#67e8f9; }
+  .keybind-btn:hover { border-color:#508BF3; }
   .keybind-btn.listening { border-color:#fbbf24; color:#fbbf24;
     animation:kbPulse 1s ease-in-out infinite; }
   @keyframes kbPulse { 0%,100%{ opacity:1; } 50%{ opacity:0.5; } }
@@ -97,7 +97,7 @@
   .wslot { background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12);
     border-radius:8px; padding:6px 10px; min-width:72px; text-align:center;
     font-size:12px; cursor:pointer; transition:all .15s; }
-  .wslot.active { border-color:#67e8f9; box-shadow:0 0 14px rgba(103,232,249,0.5);
+  .wslot.active { border-color:#508BF3; box-shadow:0 0 14px rgba(80,139,243,0.5);
     background:rgba(8,145,178,0.35); }
   .wslot.locked { opacity:0.45; }
   .wslot .name { font-weight:bold; color:#fff; font-size:12px; }
@@ -113,12 +113,12 @@
     background:rgba(0,0,0,0.6); border:2px solid rgba(255,255,255,0.15);
     display:flex; align-items:center; justify-content:center;
     overflow:hidden; transition:all .15s; }
-  .ws-diamond.ready .ws-diamond-inner { border-color:rgba(103,232,249,0.6);
-    box-shadow:0 0 12px rgba(103,232,249,0.3); }
+  .ws-diamond.ready .ws-diamond-inner { border-color:rgba(80,139,243,0.6);
+    box-shadow:0 0 12px rgba(80,139,243,0.3); }
   .ws-diamond.active-skill .ws-diamond-inner { border-color:#fde047;
     box-shadow:0 0 16px rgba(253,224,71,0.5);
     background:rgba(253,224,71,0.15); }
-  .ws-diamond:hover .ws-diamond-inner { border-color:#67e8f9; transform:scale(1.05); }
+  .ws-diamond:hover .ws-diamond-inner { border-color:#508BF3; transform:scale(1.05); }
   .ws-diamond .ws-content { transform:rotate(-45deg); text-align:center;
     font-size:10px; color:#fff; line-height:1.2; pointer-events:none; }
   .ws-diamond .ws-icon { font-size:16px; }
@@ -131,33 +131,33 @@
 
   /* 当前武器详情（右下，武器栏之上） */
   #weaponInfo { position:fixed; right:18px; bottom:88px; z-index:10;
-    background:rgba(0,0,0,0.55); border:1px solid rgba(103,232,249,0.3);
+    background:rgba(0,0,0,0.55); border:1px solid rgba(80,139,243,0.3);
     border-radius:10px; padding:8px 14px; min-width:200px;
     font-size:12px; text-align:right; backdrop-filter:blur(6px); }
-  .wi-name { font-size:18px; color:#67e8f9; font-weight:bold; letter-spacing:2px; }
+  .wi-name { font-size:18px; color:#508BF3; font-weight:bold; letter-spacing:2px; }
   .wi-stats { color:#cbd5e1; margin-top:2px; display:flex; justify-content:flex-end; gap:12px; }
   .wi-stats b { color:#fff; }
   .wi-cd { width:100%; height:4px; background:rgba(255,255,255,0.08);
     border-radius:2px; overflow:hidden; margin-top:6px; }
-  .wi-cd-fill { height:100%; width:100%; background:#22d3ee;
-    box-shadow:0 0 6px #22d3ee; transition:width .05s linear; }
+  .wi-cd-fill { height:100%; width:100%; background:#508BF3;
+    box-shadow:0 0 6px #508BF3; transition:width .05s linear; }
 
   /* 底部条容器 */
   /* 经验条占满整条底部 */
   #expWrap { position:fixed; left:0; right:0; bottom:0; z-index:11;
     display:flex; align-items:center; gap:10px;
     padding:0 12px; height:14px; pointer-events:none; }
-  .lv-pill { background:rgba(0,0,0,0.7); border:1px solid #fde047;
-    color:#fde047; padding:1px 10px; border-radius:10px;
+  .lv-pill { background:rgba(0,0,0,0.7); border:1px solid #508BF3;
+    color:#508BF3; padding:1px 10px; border-radius:10px;
     font-size:12px; font-weight:bold; letter-spacing:1px;
-    box-shadow:0 0 8px rgba(253,224,71,0.4); white-space:nowrap; }
-  .lv-label { color:#fbbf24; margin-right:2px; }
+    box-shadow:0 0 8px rgba(80,139,243,0.4); white-space:nowrap; }
+  .lv-label { color:#508BF3; margin-right:2px; }
   .expbar { flex:1; height:8px; background:rgba(255,255,255,0.07);
     border-radius:4px; overflow:hidden; position:relative;
     border:1px solid rgba(255,255,255,0.1); }
   .expbar-fill { height:100%; width:0%;
-    background:linear-gradient(90deg,#fde047,#fb923c);
-    box-shadow:0 0 8px rgba(253,224,71,0.6);
+    background:linear-gradient(90deg,#508BF3,#508BF3);
+    box-shadow:0 0 8px rgba(80,139,243,0.6);
     transition:width .25s ease-out; }
   .exp-text { position:absolute; right:6px; top:-1px; font-size:10px;
     color:#fde047; text-shadow:0 0 4px rgba(0,0,0,0.7); }
@@ -173,10 +173,10 @@
   .hp-label { color:#f87171; font-size:12px; font-weight:bold; letter-spacing:1px; width:24px; text-align:center; }
   .shieldbar { position:relative; width:280px; height:10px;
     background:rgba(255,255,255,0.08); border-radius:5px; overflow:hidden;
-    border:1px solid rgba(103,232,249,0.3); }
+    border:1px solid rgba(255,255,255,0.3); }
   .shieldbar-fill { height:100%; width:100%;
-    background:linear-gradient(90deg,#67e8f9,#22d3ee);
-    box-shadow:0 0 8px rgba(103,232,249,0.6);
+    background:linear-gradient(90deg,#e2e8f0,#ffffff);
+    box-shadow:0 0 6px rgba(255,255,255,0.4);
     transition:width .15s ease-out; }
   .shield-text { position:absolute; left:50%; top:50%;
     transform:translate(-50%,-50%); font-size:10px; color:#fff;
@@ -238,7 +238,7 @@
     width:22px; height:22px; pointer-events:none; z-index:10;
     transform:translate(-50%,-50%); }
   #crosshair::before, #crosshair::after { content:""; position:absolute;
-    background:#67e8f9; box-shadow:0 0 6px #67e8f9; }
+    background:#508BF3; box-shadow:0 0 6px #508BF3; }
   #crosshair::before { left:10px; top:0; width:2px; height:22px; }
   #crosshair::after { top:10px; left:0; height:2px; width:22px; }
   #crosshair.auto-target { width:28px; height:28px; }
@@ -271,7 +271,7 @@
   .stage-phase { font-size:18px; color:#94a3b8; letter-spacing:6px;
     text-transform:uppercase; margin-bottom:8px; opacity:0.7; }
   .stage-slogan { font-size:52px; font-weight:bold; letter-spacing:8px;
-    background:linear-gradient(90deg,#67e8f9,#fde047,#ef4444);
+    background:linear-gradient(90deg,#508BF3,#fde047,#ef4444);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent;
     text-shadow:none; filter:drop-shadow(0 0 20px rgba(253,224,71,0.4)); }
   #stageIntro.boss .stage-slogan {
@@ -311,16 +311,16 @@
   .missile-bar-top { top:0; }
   .missile-bar-bot { bottom:0; }
   #missileOverlay.active .missile-bar-top,
-  #missileOverlay.active .missile-bar-bot { height:12vh; }
+  #missileOverlay.active .missile-bar-bot { height:0; }
   /* 导弹飞行 */
-  .missile-sprite { position:absolute; left:-120px; top:50%; z-index:3;
-    font-size:64px; transform:translateY(-50%);
-    filter:drop-shadow(0 0 20px rgba(255,50,50,0.8)); }
+  .missile-sprite { position:absolute; left:-180px; top:50%; z-index:3;
+    font-size:128px; transform:translateY(-50%);
+    filter:drop-shadow(0 0 30px rgba(255,50,50,0.8)); }
   @keyframes missileFly {
-    0% { left:-120px; top:48%; transform:translateY(-50%) rotate(-5deg); opacity:1; }
-    50% { left:46%; top:46%; transform:translateY(-50%) rotate(0deg); opacity:1; }
-    80% { left:50%; top:50%; transform:translateY(-50%) scale(1.5); opacity:1; }
-    100% { left:50%; top:50%; transform:translateY(-50%) scale(2); opacity:0; }
+    0% { left:-180px; top:48%; transform:translateY(-50%) rotate(-5deg); opacity:1; }
+    50% { left:44%; top:46%; transform:translateY(-50%) rotate(0deg); opacity:1; }
+    80% { left:48%; top:50%; transform:translateY(-50%) scale(1.5); opacity:1; }
+    100% { left:48%; top:50%; transform:translateY(-50%) scale(2); opacity:0; }
   }
   .missile-sprite.fly { animation:missileFly 1s ease-in forwards; }
   /* 爆炸闪白 */
@@ -331,8 +331,8 @@
   }
   .missile-flash.fire { animation:missileFlash 0.6s ease-out forwards; }
   /* 标题文字 */
-  .missile-title { position:absolute; top:18vh; left:50%; transform:translateX(-50%);
-    z-index:5; font-size:28px; font-weight:900; color:#ff3333;
+  .missile-title { position:absolute; top:14vh; left:50%; transform:translateX(-50%);
+    z-index:5; font-size:48px; font-weight:900; color:#ff3333;
     text-shadow:0 0 30px rgba(255,50,50,0.8),0 0 60px rgba(255,200,50,0.4);
     letter-spacing:6px; opacity:0; white-space:nowrap; }
   @keyframes missileTitle {
@@ -348,19 +348,18 @@
     align-items:center; justify-content:center; flex-direction:column;
     background:radial-gradient(ellipse at center, rgba(20,30,60,0.9), rgba(5,8,20,0.97));
     text-align:center; padding:20px; }
-  #overlay h1 { font-size:42px; margin:0 0 10px; letter-spacing:4px; color:#67e8f9;
-    text-shadow:0 0 18px rgba(103,232,249,0.6); }
+  #overlay h1 { font-size:42px; margin:0 0 10px; letter-spacing:4px; color:#508BF3; }
   #overlay p { max-width:560px; line-height:1.8; color:#cbd5e1; }
   #overlay button { margin-top:18px; padding:10px 30px; font-size:16px;
-    background:#06b6d4; color:#fff; border:none; border-radius:6px;
-    cursor:pointer; letter-spacing:2px; box-shadow:0 4px 18px rgba(6,182,212,0.5); }
-  #overlay button:hover { background:#0891b2; }
-  #feedbackLink { position:absolute; top:18px; right:24px; color:#67e8f9; font-size:14px;
-    text-decoration:none; background:rgba(6,182,212,0.15); border:1px solid rgba(103,232,249,0.3);
+    background:#508BF3; color:#fff; border:none; border-radius:6px;
+    cursor:pointer; letter-spacing:2px; box-shadow:0 4px 18px rgba(80,139,243,0.5); }
+  #overlay button:hover { background:#3a6fd8; }
+  #feedbackLink { position:absolute; top:18px; right:24px; color:#508BF3; font-size:14px;
+    text-decoration:none; background:rgba(80,139,243,0.15); border:1px solid rgba(80,139,243,0.3);
     padding:8px 16px; border-radius:8px; letter-spacing:1px; transition:all .2s;
     z-index:21; }
-  #feedbackLink:hover { background:rgba(6,182,212,0.35); border-color:#67e8f9;
-    box-shadow:0 0 12px rgba(103,232,249,0.3); }
+  #feedbackLink:hover { background:rgba(80,139,243,0.35); border-color:#508BF3;
+    box-shadow:0 0 12px rgba(80,139,243,0.3); }
   .key { display:inline-block; padding:1px 7px; margin:0 2px;
     border:1px solid #475569; border-radius:4px; background:#1e293b;
     color:#fff; font-size:12px; font-family:monospace; }
@@ -382,9 +381,9 @@
   .btn-danger { background:#ef4444; color:#fff;
     box-shadow:0 4px 14px rgba(239,68,68,0.4); }
   .btn-danger:hover { background:#dc2626; }
-  .btn-primary { background:#06b6d4; color:#fff;
-    box-shadow:0 4px 14px rgba(6,182,212,0.4); }
-  .btn-primary:hover { background:#0891b2; }
+  .btn-primary { background:#508BF3; color:#fff;
+    box-shadow:0 4px 14px rgba(80,139,243,0.4); }
+  .btn-primary:hover { background:#3a6fd8; }
 
   /* 休整面板 */
   #restPanel { position:fixed; top:14px; left:50%; transform:translateX(-50%);
@@ -421,10 +420,10 @@
     pointer-events:none; }
   #alliancePick.show { display:flex; }
   .ap-inner { text-align:center; max-width:800px; width:92vw; pointer-events:auto;
-    background:rgba(15,23,42,0.8); border:1px solid rgba(103,232,249,0.2);
+    background:rgba(15,23,42,0.8); border:1px solid rgba(80,139,243,0.2);
     border-radius:14px; padding:20px 24px; backdrop-filter:blur(8px); }
   .ap-title { font-size:28px; font-weight:bold; letter-spacing:4px;
-    background:linear-gradient(90deg,#67e8f9,#a78bfa,#fbbf24);
+    background:linear-gradient(90deg,#508BF3,#a78bfa,#fbbf24);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent;
     text-shadow:none; margin-bottom:6px; }
   .ap-sub { color:#94a3b8; font-size:14px; margin-bottom:20px; }
@@ -433,18 +432,21 @@
   .ap-card { background:#1e293b; border:2px solid #334155; border-radius:14px;
     padding:18px 16px; width:220px; cursor:pointer; transition:all .2s;
     position:relative; overflow:hidden; text-align:left; }
-  .ap-card:hover { border-color:#67e8f9; transform:translateY(-4px);
-    box-shadow:0 8px 30px rgba(103,232,249,0.25); }
+  .ap-card:hover { border-color:#508BF3; transform:translateY(-4px);
+    box-shadow:0 8px 30px rgba(80,139,243,0.25); }
   .ap-card.golden { border-color:#fbbf24; background:linear-gradient(135deg,#1e293b 60%,#422006);
     box-shadow:0 0 20px rgba(253,224,71,0.2); }
   .ap-card.golden:hover { border-color:#fde047;
     box-shadow:0 8px 40px rgba(253,224,71,0.4); }
   .ap-card .chain-name { font-size:11px; color:#94a3b8; letter-spacing:1px; margin-bottom:4px; }
-  .ap-card .card-title { font-size:16px; font-weight:bold; color:#fff; margin-bottom:6px; }
+  .ap-card .card-icon { font-size:42px; text-align:center; margin:8px 0 6px;
+    filter:drop-shadow(0 0 8px rgba(255,255,255,0.3)); line-height:1; }
+  .ap-card.golden .card-icon { filter:drop-shadow(0 0 12px rgba(253,224,71,0.5)); }
+  .ap-card .card-title { font-size:15px; font-weight:bold; color:#fff; margin-bottom:6px; text-align:center; }
   .ap-card.golden .card-title { color:#fde047; }
   .ap-card .card-tier { position:absolute; top:10px; right:12px;
-    font-size:11px; color:#67e8f9; background:rgba(103,232,249,0.1);
-    padding:2px 8px; border-radius:8px; border:1px solid rgba(103,232,249,0.3); }
+    font-size:11px; color:#508BF3; background:rgba(80,139,243,0.1);
+    padding:2px 8px; border-radius:8px; border:1px solid rgba(80,139,243,0.3); }
   .ap-card.golden .card-tier { color:#fbbf24; background:rgba(253,224,71,0.1);
     border-color:rgba(253,224,71,0.3); }
   .ap-card .card-desc { font-size:12px; color:#cbd5e1; line-height:1.5; }
@@ -645,20 +647,7 @@
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-row" style="color:#a78bfa;font-weight:bold;font-size:14px;">技能键位</div>
-      <div class="settings-row">
-        <label>💣 榴弹轰炸</label>
-        <button class="keybind-btn" id="kb1" data-cfg="skillKey1">4</button>
-      </div>
-      <div class="settings-row">
-        <label>🔫 毁灭者</label>
-        <button class="keybind-btn" id="kb2" data-cfg="skillKey2">5</button>
-      </div>
-      <div class="settings-row">
-        <label>🚁 机枪哨卫</label>
-        <button class="keybind-btn" id="kb3" data-cfg="skillKey3">6</button>
-      </div>
-      <div class="settings-row" style="color:#fde047;font-weight:bold;font-size:14px;margin-top:8px;">武器技能键位</div>
+      <div class="settings-row" style="color:#fde047;font-weight:bold;font-size:14px;">武器技能键位</div>
       <div class="settings-row">
         <label>🔫 步枪技能</label>
         <button class="keybind-btn" id="kbWS1" data-cfg="weaponSkillKey1">V</button>
@@ -830,12 +819,12 @@ import * as THREE from 'three';
 const CONFIG = {
   // —— 休整 —— 
   restEveryNWaves: 3,    // 每 N 波后进入一次休整期
-  restDuration:    20,   // 休整时长（秒）
-  bossWave:        25,   // 第几波进入 Boss 阶段（第二阶段）
-  bossUnlockWave:  15,   // 第几波开始出现 Boss 门（可提前挑战）
+  restDuration:    15,   // 休整时长（秒）
+  bossWave:        20,   // 第几波进入 Boss 阶段（第二阶段）
+  bossUnlockWave:  12,   // 第几波开始出现 Boss 门（可提前挑战）
   maxRevives:      5,    // 阶段一最大复活次数
   // —— 等级 —— 
-  expBase:         30,   // 升到 2 级所需经验
+  expBase:         24,   // 升到 2 级所需经验（降低20%）
   expGrowth:       1.18, // 每级所需经验倍率（平滑增长）
   expPerKillBase:  10,   // 普通敌人击杀经验（实际还会乘以敌人价值系数）
   // —— 雷达 —— 
@@ -977,12 +966,12 @@ gateAngles.forEach(a => {
 // 中央装饰：出生点光圈
 const spawnRing = new THREE.Mesh(
   new THREE.RingGeometry(2.2, 2.6, 48),
-  new THREE.MeshBasicMaterial({ color:0x67e8f9, transparent:true, opacity:0.5, side:THREE.DoubleSide })
+  new THREE.MeshBasicMaterial({ color:0x508BF3, transparent:true, opacity:0.5, side:THREE.DoubleSide })
 );
 spawnRing.rotation.x = -Math.PI/2;
 spawnRing.position.y = 0.02;
 scene.add(spawnRing);
-const spawnGlow = new THREE.PointLight(0x67e8f9, 0.8, 12);
+const spawnGlow = new THREE.PointLight(0x508BF3, 0.8, 12);
 spawnGlow.position.set(0, 0.5, 0);
 scene.add(spawnGlow);
 
@@ -1236,12 +1225,12 @@ const Audio = {
 
 /* ================= 武器系统（两枪一近战） ================= */
 const WEAPONS = [
-  { id:'rifle', name:'突击步枪', key:'1', cooldown:0.12, dmg:0.25, unlocked:true, color:0xfde047,
+  { id:'rifle', name:'突击步枪', key:'1', cooldown:0.12, dmg:0.375, unlocked:true, color:0xfde047,
     skillName:'集中射击', skillDesc:'射速翻倍，持续3s', skillCd:8, skillDur:3 },
-  { id:'shotgun', name:'霰弹枪', key:'2', cooldown:0.6, dmg:0.375, unlocked:true, color:0xfb923c,
+  { id:'shotgun', name:'霰弹枪', key:'2', cooldown:0.6, dmg:0.5625, unlocked:true, color:0xfb923c,
     pellets:6, spread:0.12,
     skillName:'爆裂弹', skillDesc:'下一发伤害×3并击退', skillCd:10, skillDur:0.8 },
-  { id:'blade', name:'能量刀', key:'3', cooldown:0.3, dmg:1, unlocked:true, color:0x22d3ee,
+  { id:'blade', name:'能量刀', key:'3', cooldown:0.3, dmg:1.5, unlocked:true, color:0x22d3ee,
     melee:true, meleeRange:3.5, speedBonus:1.4 },
 ];
 let currentWeapon = 0;
@@ -1497,7 +1486,7 @@ const rockets = [];     // 火箭
 const beams = [];       // 激光（短生命周期）
 const explosions = [];
 
-const bulletGeo = new THREE.SphereGeometry(0.12,8,8);
+const bulletGeo = new THREE.SphereGeometry(0.015,4,4);
 
 // 自动开火辅助
 const _afDir = new THREE.Vector3();
@@ -1646,19 +1635,19 @@ const enemies = [];
 // 分类：fodder=炮灰, captain=队长, elite=精英
 const ENEMY_TYPES = {
   // === 炮灰 ===
-  zombie:    { cat:'fodder', name:'月球丧尸',     color:0xef4444, size:1.0, hp:3, speed:1.1, gold:4, score:8,   fly:false, dmg:10 },
-  bomber:    { cat:'fodder', name:'自爆丧尸',     color:0xfb923c, size:0.9, hp:3, speed:1.2, gold:5, score:10,  fly:false, dmg:25, explodeRadius:8 },
-  fatso:     { cat:'fodder', name:'胖子丧尸',     color:0x78716c, size:1.8, hp:15, speed:0.6, gold:8, score:15,  fly:false, dmg:15 },
+  zombie:    { cat:'fodder', name:'月球丧尸',     color:0xef4444, size:1.0, hp:3, speed:2.64, gold:4, score:8,   fly:false, dmg:10 },
+  bomber:    { cat:'fodder', name:'自爆丧尸',     color:0xfb923c, size:0.9, hp:3, speed:2.88, gold:5, score:10,  fly:false, dmg:25, explodeRadius:8 },
+  fatso:     { cat:'fodder', name:'胖子丧尸',     color:0x78716c, size:1.8, hp:15, speed:1.44, gold:8, score:15,  fly:false, dmg:15 },
   swarm:     { cat:'fodder', name:'虫潮基底',     color:0x84cc16, size:0.5, hp:1.5, speed:5.6, gold:2, score:4, fly:false, dmg:5 },
   // === 队长 ===
-  medic:     { cat:'captain', name:'医疗特种队长', color:0x22c55e, size:1.2, hp:12, speed:0.7, gold:25, score:40, fly:false, dmg:8, ranged:true, healAura:true },
-  shielder:  { cat:'captain', name:'护盾特种队长', color:0x3b82f6, size:1.2, hp:12, speed:0.7, gold:25, score:40, fly:false, dmg:8, ranged:true, shieldAura:true },
+  medic:     { cat:'captain', name:'医疗特种队长', color:0x22c55e, size:1.2, hp:12, speed:1.68, gold:25, score:40, fly:false, dmg:8, ranged:true, healAura:true },
+  shielder:  { cat:'captain', name:'护盾特种队长', color:0x3b82f6, size:1.2, hp:12, speed:1.68, gold:25, score:40, fly:false, dmg:8, ranged:true, shieldAura:true },
   // === 精英 ===
   assassin:  { cat:'elite', name:'刺客精英', color:0xec4899, size:0.8, hp:9, speed:9.6, gold:35, score:60,  fly:false, dmg:20, dashFreq:3 },
-  tankElite: { cat:'elite', name:'坦克精英', color:0x525252, size:2.2, hp:45, speed:0.5, gold:40, score:70, fly:false, dmg:18, dashFreq:8 },
-  rangedElite:{ cat:'elite', name:'远程精英', color:0x8b5cf6, size:1.0, hp:9, speed:0.8, gold:35, score:60, fly:true, dmg:12, laserBall:true },
+  tankElite: { cat:'elite', name:'坦克精英', color:0x525252, size:2.2, hp:45, speed:1.2, gold:40, score:70, fly:false, dmg:18, dashFreq:8 },
+  rangedElite:{ cat:'elite', name:'远程精英', color:0x8b5cf6, size:1.0, hp:9, speed:1.92, gold:35, score:60, fly:true, dmg:12, laserBall:true },
   // Boss
-  boss:      { cat:'boss', name:'BOSS', color:0xdc2626, size:3.0, hp:75, speed:0.54, gold:120, score:200, fly:false, dmg:30, isBoss:true },
+  boss:      { cat:'boss', name:'BOSS', color:0xdc2626, size:3.0, hp:75, speed:1.3, gold:120, score:200, fly:false, dmg:30, isBoss:true },
 };
 
 const ENEMY_NAME_MAP = {};
@@ -1825,25 +1814,49 @@ function damageEnemy(e, dmg) {
   Audio.hit();
   if (e.userData.hp <= 0) killEnemy(e);
 }
+let _missileKilling = false;
+let _chainDepth = 0; // 自爆连锁深度
 function killEnemy(e) {
   if (!e.userData.alive) return;
+  const ePos = e.position.clone();
+  const wasBomber = e.userData.type === 'bomber' && !_missileKilling && _chainDepth < 1;
   e.userData.alive = false;
-  explode(e.position, e.userData.isBoss);
+  // 连锁击杀或导弹击杀时跳过爆炸粒子
+  if (!_missileKilling && _chainDepth === 0) explode(e.position, e.userData.isBoss);
   scene.remove(e);
   const idx = enemies.indexOf(e); if (idx>=0) enemies.splice(idx,1);
   gameState.kills++;
   gameState.score += e.userData.score;
   const goldGain = Math.floor(e.userData.gold * allianceState.goldMul);
   gameState.gold += goldGain;
-  // 经验：以分数为权重，受增益影响（减半）
-  const expGain = Math.max(1, Math.floor(e.userData.score * 0.3 * allianceState.expMul));
-  addExp(expGain);
-  showFloat(`+${goldGain}金 +${expGain}EXP`, '#fbbf24');
-  Audio.kill(); Audio.coin();
+  if (!_missileKilling) {
+    const expGain = Math.max(1, Math.floor(e.userData.score * 0.3 * allianceState.expMul));
+    spawnExpOrb(ePos, expGain);
+    if (_chainDepth === 0) showFloat(`+${goldGain}金`, '#fbbf24');
+  }
+  if (_chainDepth === 0) { Audio.kill(); Audio.coin(); }
   refreshHUD(); renderWeaponBar();
+  // 自爆连锁（仅1层深度，不递归爆炸特效）
+  if (wasBomber) {
+    _chainDepth++;
+    const r = ENEMY_TYPES.bomber.explodeRadius;
+    const waveMul = 1 + (gameState.wave - 1) * 0.15;
+    if (_chainDepth === 1) Audio.explosion();
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      const other = enemies[j];
+      if (!other.userData || !other.userData.alive) continue;
+      const d = ePos.distanceTo(other.position);
+      if (d < r) {
+        const dmg = e.userData.dmg * (1 - d / r) * waveMul;
+        damageEnemy(other, dmg);
+        if (other.userData.hp <= 0) killEnemy(other);
+      }
+    }
+    _chainDepth--;
+  }
   // 随机掉落轰炸道具（3%概率）
   if (Math.random() < 0.03 && !e.userData.isBoss) {
-    spawnBombPickup(e.position.clone());
+    spawnBombPickup(ePos);
   }
 }
 
@@ -2316,7 +2329,7 @@ function startNextWave() {
   waveQueue = buildWaveQueue(gameState.wave);
   gameState.waveBudget = waveQueue.length;
   gameState.waveSpawned = 0;
-  gameState.spawnInterval = Math.max(0.12, 0.8 - gameState.wave * 0.03); // 更快刷怪
+  gameState.spawnInterval = Math.max(0.04, 0.27 - gameState.wave * 0.01); // 极速刷怪
   gameState.waveClearWait = 0;
 }
 
@@ -2521,10 +2534,10 @@ function showAlliancePick() {
     card.innerHTML = `
       <div class="chain-name">${opt.chainName}</div>
       <div class="card-tier">${opt.tierLabel}</div>
-      <div class="card-title">${opt.icon} ${opt.name}</div>
+      <div class="card-icon">${opt.icon}</div>
+      <div class="card-title">${opt.name}</div>
       <div class="card-desc">${opt.desc}</div>
-      <div class="card-type ${opt.type==='skill'?'skill':'buff'}">${opt.type==='skill'?'战术增援':'通用增益'}</div>
-      ${opt.key ? `<div class="card-key">技能键 [${opt.key}]</div>` : ''}
+      <div class="card-type ${opt.type==='skill'?'skill':'buff'}">${opt.type==='skill'?'被动增援':'通用增益'}</div>
     `;
     card.onclick = () => pickAlliance(opt);
     apCardsEl.appendChild(card);
@@ -3303,6 +3316,78 @@ function updateDrones(dt) {
   });
 }
 
+/* ================= 经验球拾取系统 ================= */
+const expOrbs = [];
+const _expOrbGeo = new THREE.SphereGeometry(0.18, 6, 6);
+const _expOrbMat = new THREE.MeshStandardMaterial({ color:0x508BF3, emissive:0x508BF3, emissiveIntensity:2, transparent:true, opacity:0.85 });
+
+function spawnExpOrb(pos, amount) {
+  const isBig = amount >= 20;
+  const orb = new THREE.Mesh(_expOrbGeo, _expOrbMat.clone());
+  if (isBig) {
+    const s = Math.min(100, 0.8 + amount * 0.05);
+    orb.scale.setScalar(s);
+    orb.material.emissiveIntensity = 4;
+  }
+  orb.position.copy(pos);
+  orb.position.y = 0.4 + Math.random() * 0.3;
+  orb.userData = {
+    exp: amount,
+    vx: isBig ? 0 : (Math.random() - 0.5) * 4,
+    vy: isBig ? 0 : 2 + Math.random() * 2,
+    vz: isBig ? 0 : (Math.random() - 0.5) * 4,
+    grounded: isBig,
+    delay: isBig ? 2.0 : 0, // 大球2秒后才可吸附
+  };
+  scene.add(orb);
+  expOrbs.push(orb);
+}
+
+function updateExpOrbs(dt) {
+  const pickR = (2.5 + allianceState.pickupRange) * 3;
+  const magnetR = (pickR + 3) * 3;
+  const _orbDir = new THREE.Vector3();
+  for (let i = expOrbs.length - 1; i >= 0; i--) {
+    const o = expOrbs[i];
+    // 弹射物理（落地前）
+    if (!o.userData.grounded) {
+      o.userData.vy -= 12 * dt;
+      o.position.x += o.userData.vx * dt;
+      o.position.y += o.userData.vy * dt;
+      o.position.z += o.userData.vz * dt;
+      if (o.position.y <= 0.3) {
+        o.position.y = 0.3;
+        o.userData.grounded = true;
+      }
+    }
+    // 浮动动画
+    if (o.userData.grounded) {
+      o.position.y = 0.3 + Math.sin(performance.now() * 0.004 + i) * 0.15;
+    }
+    // delay倒计时
+    if (o.userData.delay > 0) {
+      o.userData.delay -= dt;
+      continue;
+    }
+    // 磁吸+拾取
+    const dist = player.pos.distanceTo(o.position);
+    if (dist < magnetR) {
+      _orbDir.subVectors(player.pos, o.position).normalize();
+      const speed = Math.max(4, 12 * (1 - dist / magnetR));
+      o.position.addScaledVector(_orbDir, speed * dt);
+      o.userData.grounded = true;
+    }
+    if (dist < pickR) {
+      // 拾取
+      addExp(o.userData.exp);
+      showFloat(`+${o.userData.exp}EXP`, '#508BF3');
+      Audio.beep({ freq:800 + Math.random()*400, type:'sine', duration:0.05, volume:0.1 });
+      scene.remove(o); expOrbs.splice(i, 1);
+      refreshHUD();
+    }
+  }
+}
+
 /* ================= 轰炸道具拾取系统 ================= */
 const bombPickups = [];
 
@@ -3403,7 +3488,37 @@ function triggerFullScreenBomb() {
   // 阶段2：爆炸（0.8s时）
   setTimeout(() => {
     flash.classList.add('fire');
+    // 强力爆炸音效：音量拉满
     Audio.explosion();
+    Audio.noise({ duration:1.2, volume:1.0, filterFreq:300 });
+    Audio.beep({ freq:60, type:'sawtooth', duration:1.0, volume:0.8, slideTo:20 });
+    setTimeout(() => {
+      Audio.explosion();
+      Audio.beep({ freq:40, type:'square', duration:0.8, volume:0.7, slideTo:15 });
+      Audio.noise({ duration:0.8, volume:0.8, filterFreq:150 });
+    }, 100);
+    setTimeout(() => {
+      Audio.explosion();
+      Audio.noise({ duration:0.6, volume:0.6, filterFreq:200 });
+    }, 200);
+    // 镜头抖动
+    let shakeTime = 0;
+    const shakeIntensity = 0.35;
+    const shakeDuration = 0.8;
+    const origRot = { x: camera.rotation.x, z: camera.rotation.z };
+    const shakeFrame = () => {
+      shakeTime += 0.016;
+      if (shakeTime < shakeDuration) {
+        const fade = 1 - shakeTime / shakeDuration;
+        camera.rotation.x = origRot.x + (Math.random() - 0.5) * shakeIntensity * fade;
+        camera.rotation.z = origRot.z + (Math.random() - 0.5) * shakeIntensity * 0.5 * fade;
+        requestAnimationFrame(shakeFrame);
+      } else {
+        camera.rotation.x = origRot.x;
+        camera.rotation.z = origRot.z;
+      }
+    };
+    shakeFrame();
 
     // 仅一个闪光，无3D粒子
     const bombFlash = new THREE.PointLight(0xff4500, 8, 50);
@@ -3419,25 +3534,26 @@ function triggerFullScreenBomb() {
     const list = enemies.slice();
     let killCount = 0;
     let idx = 0;
+    let totalExp = 0;
+    _missileKilling = true; // 禁用killEnemy中的自爆连锁和经验球
     const batchKill = () => {
-      const batchEnd = Math.min(idx + 8, list.length);
+      const batchEnd = Math.min(idx + 10, list.length);
       for (; idx < batchEnd; idx++) {
         const e = list[idx];
         if (!e.userData || !e.userData.alive) continue;
         if (e.userData.isBoss) {
           damageEnemy(e, e.userData.maxHp * 0.15);
         } else {
-          damageEnemy(e, bombDmg);
+          const hp0 = e.userData.hp;
+          e.userData.hp -= bombDmg;
           if (e.userData.hp <= 0) {
-            // 轻量击杀：不播单独爆炸特效
+            totalExp += Math.max(1, Math.floor(e.userData.score * 0.3 * allianceState.expMul));
+            gameState.gold += Math.floor(e.userData.gold * allianceState.goldMul);
+            gameState.score += e.userData.score;
+            gameState.kills++;
             e.userData.alive = false;
             scene.remove(e);
             const ei = enemies.indexOf(e); if (ei >= 0) enemies.splice(ei, 1);
-            gameState.kills++;
-            gameState.score += e.userData.score;
-            gameState.gold += Math.floor(e.userData.gold * allianceState.goldMul);
-            const expGain = Math.max(1, Math.floor(e.userData.score * 0.3 * allianceState.expMul));
-            addExp(expGain);
             killCount++;
           }
         }
@@ -3445,6 +3561,14 @@ function triggerFullScreenBomb() {
       if (idx < list.length) {
         requestAnimationFrame(batchKill);
       } else {
+        _missileKilling = false;
+        if (totalExp > 0) {
+          const fwd = new THREE.Vector3();
+          camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+          const orbPos = player.pos.clone().addScaledVector(fwd, 8);
+          orbPos.y = 1.5;
+          spawnExpOrb(orbPos, totalExp);
+        }
         if (killCount > 0) {
           showFloat(`🚀 轰炸清除 ${killCount} 只！`, '#ff3333');
           Audio.kill();
@@ -3453,7 +3577,7 @@ function triggerFullScreenBomb() {
       }
     };
     batchKill();
-  }, 1400);
+  }, 1000);
 
   // 阶段4：清理演出（1.5s时）
   setTimeout(() => {
@@ -3462,7 +3586,7 @@ function triggerFullScreenBomb() {
     flash.classList.remove('fire');
     title.classList.remove('show');
     // 重置sprite位置
-    sprite.style.left = '-120px';
+    sprite.style.left = '-180px';
   }, 1500);
 }
 
@@ -3716,10 +3840,10 @@ function buildWaveQueue(wave) {
 
   for (let i = 0; i < totalCount; i++) {
     const rnd = Math.random();
-    // 精英：wave 10+ 出现，概率递增
-    const eliteChance = wave >= 10 ? Math.min(0.12, 0.02 + (wave-10)*0.01) : 0;
-    // 队长：wave 6+ 出现
-    const captainChance = wave >= 6 ? Math.min(0.10, 0.03 + (wave-6)*0.01) : 0;
+    // 精英：wave 8+ 出现，概率递增
+    const eliteChance = wave >= 8 ? Math.min(0.12, 0.02 + (wave-8)*0.01) : 0;
+    // 队长：wave 4+ 出现
+    const captainChance = wave >= 4 ? Math.min(0.10, 0.03 + (wave-4)*0.01) : 0;
 
     if (rnd < eliteChance) {
       // 精英：刺客/坦克/远程 均匀分配
@@ -4094,6 +4218,7 @@ function startGame() {
   _destroyerPassiveTimer = 0;
   _sentryPassiveTimer = 0;
   bombPickups.forEach(p => scene.remove(p)); bombPickups.length = 0;
+  expOrbs.forEach(o => scene.remove(o)); expOrbs.length = 0;
   renderSkillBar();
   renderPickButton();
   // 重置 Boss 门
@@ -4412,7 +4537,7 @@ function update(dt) {
     }
   } else if (enemies.length === 0) {
     gameState.waveClearWait += dt;
-    const waveGap = 5;
+    const waveGap = 3;
     const remaining = waveGap - gameState.waveClearWait;
     if (remaining > 0 && remaining <= 4 && !gameState._waveGapNotified) {
       gameState._waveGapNotified = true;
@@ -4617,6 +4742,23 @@ function update(dt) {
           const kbForce = 8 * falloff;
           player.vel.x += kb.x * kbForce; player.vel.z += kb.z * kbForce;
         }
+        // 对周围怪物造成伤害（距离衰减）
+        const waveMul = 1 + (gameState.wave - 1) * 0.15;
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          if (j === i) continue; // 跳过自己
+          const other = enemies[j];
+          if (!other.userData || !other.userData.alive) continue;
+          const d2e = ePos.distanceTo(other.position);
+          if (d2e < r) {
+            const eDmg = ud.dmg * (1 - d2e / r) * waveMul;
+            damageEnemy(other, eDmg);
+            if (other.userData.hp <= 0) {
+              killEnemy(other);
+              // 索引修正
+              if (j < i) i--;
+            }
+          }
+        }
         explode(ePos, true); scene.remove(e); enemies.splice(i,1);
         flashDamage(); refreshHUD();
         if (gameState.hp <= 0) { gameOver(); return; }
@@ -4728,6 +4870,7 @@ function update(dt) {
   updatePlacePreview();
   updateTurrets(dt);
   updateDrones(dt);
+  updateExpOrbs(dt);
   updateBombPickups(dt);
   updateBossGate(dt);
   updateBossAI(dt);
@@ -4759,7 +4902,7 @@ function drawRadar() {
   ctx.clearRect(0, 0, RADAR_SIZE, RADAR_SIZE);
 
   // 同心圆
-  ctx.strokeStyle = 'rgba(103,232,249,0.18)';
+  ctx.strokeStyle = 'rgba(80,139,243,0.18)';
   ctx.lineWidth = 1;
   for (let i=1; i<=3; i++) {
     ctx.beginPath();
@@ -4778,10 +4921,10 @@ function drawRadar() {
     ? ctx.createConicGradient(radarSweep, cx, cy)
     : null;
   if (sweepGrad) {
-    sweepGrad.addColorStop(0, 'rgba(103,232,249,0.0)');
-    sweepGrad.addColorStop(0.05, 'rgba(103,232,249,0.35)');
-    sweepGrad.addColorStop(0.15, 'rgba(103,232,249,0.0)');
-    sweepGrad.addColorStop(1, 'rgba(103,232,249,0.0)');
+    sweepGrad.addColorStop(0, 'rgba(80,139,243,0.0)');
+    sweepGrad.addColorStop(0.05, 'rgba(80,139,243,0.35)');
+    sweepGrad.addColorStop(0.15, 'rgba(80,139,243,0.0)');
+    sweepGrad.addColorStop(1, 'rgba(80,139,243,0.0)');
     ctx.fillStyle = sweepGrad;
     ctx.beginPath();
     ctx.arc(cx, cy, RADAR_R, 0, Math.PI*2);
@@ -4799,7 +4942,7 @@ function drawRadar() {
   // 出生点圆心（世界 0,0）
   const sp = worldToRadar(-player.pos.x, -player.pos.z, fwd, rt);
   if (sp) {
-    ctx.fillStyle = 'rgba(103,232,249,0.6)';
+    ctx.fillStyle = 'rgba(80,139,243,0.6)';
     ctx.beginPath();
     ctx.arc(cx + sp.x, cy + sp.y, 3, 0, Math.PI*2);
     ctx.fill();
@@ -4871,19 +5014,19 @@ function drawRadar() {
   }
 
   // 玩家（中心）
-  ctx.fillStyle = '#67e8f9';
+  ctx.fillStyle = '#508BF3';
   ctx.beginPath();
   ctx.arc(cx, cy, 4, 0, Math.PI*2);
   ctx.fill();
   // 朝向（永远朝上）
-  ctx.strokeStyle = '#67e8f9';
+  ctx.strokeStyle = '#508BF3';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(cx, cy);
   ctx.lineTo(cx, cy - 10);
   ctx.stroke();
   // 视野扇形
-  ctx.fillStyle = 'rgba(103,232,249,0.10)';
+  ctx.fillStyle = 'rgba(80,139,243,0.10)';
   ctx.beginPath();
   ctx.moveTo(cx, cy);
   ctx.arc(cx, cy, RADAR_R, -Math.PI/2 - 0.5, -Math.PI/2 + 0.5);
@@ -5046,7 +5189,7 @@ function initSettings() {
     gameState.resting = false;
     restEl.classList.remove('show');
     startNextWave();
-    setMsg(`跳转到第 ${target} 波`, 1500, '#67e8f9');
+    setMsg(`跳转到第 ${target} 波`, 1500, '#508BF3');
     refreshHUD();
   });
   document.getElementById('debugSpawnMissile').addEventListener('click', () => {

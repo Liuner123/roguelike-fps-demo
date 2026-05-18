@@ -619,9 +619,14 @@
     <h2>⚙ 设置</h2>
     <div class="settings-section">
       <div class="settings-row">
-        <label>鼠标灵敏度</label>
+        <label>X轴灵敏度</label>
         <input type="range" id="cfgSens" min="0.2" max="3" step="0.05">
         <span class="val" id="cfgSensVal">1.00</span>
+      </div>
+      <div class="settings-row">
+        <label>Y轴灵敏度</label>
+        <input type="range" id="cfgSensY" min="0.1" max="3" step="0.05">
+        <span class="val" id="cfgSensYVal">0.50</span>
       </div>
       <div class="settings-row">
         <label>中央死区</label>
@@ -868,7 +873,8 @@ const CONFIG = {
   // —— 雷达 —— 
   radarRange:      50,   // 雷达探测半径（世界单位）
   // —— 鼠标控制 —— 
-  mouseSensitivity: 1.0, // 鼠标灵敏度倍率（1.0 = 默认）
+  mouseSensitivity: 1.0, // X轴鼠标灵敏度倍率
+  mouseSensY:       0.5, // Y轴鼠标灵敏度倍率（默认为X轴一半）
   mouseDeadZone:    0.15,// 屏幕中央死区比例（0~0.4），越大越不灵敏
   mouseMaxRotSpeed: 1.6, // 鼠标推到屏幕边缘时的最大角速度（弧度/秒）
   invertY:          false,
@@ -1955,12 +1961,12 @@ document.addEventListener('mousemove', (e) => {
   // 暂停时也允许视角移动（放置模式/休整期需要）
   if (pointerLocked) {
     yaw   -= e.movementX * 0.002 * CONFIG.mouseSensitivity;
-    pitch -= e.movementY * 0.002 * CONFIG.mouseSensitivity * (CONFIG.invertY ? -1 : 1);
+    pitch -= e.movementY * 0.002 * CONFIG.mouseSensY * (CONFIG.invertY ? -1 : 1);
   } else {
     // 兼容模式：鼠标在屏幕位置驱动（按住右键 / 直接移动）
     if (typeof e.movementX === 'number' && (e.buttons & 1 || e.buttons & 2)) {
       yaw   -= e.movementX * 0.003 * CONFIG.mouseSensitivity;
-      pitch -= e.movementY * 0.003 * CONFIG.mouseSensitivity * (CONFIG.invertY ? -1 : 1);
+      pitch -= e.movementY * 0.003 * CONFIG.mouseSensY * (CONFIG.invertY ? -1 : 1);
     }
   }
   pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, pitch));
@@ -5184,6 +5190,7 @@ function initKeybinds() {
 function initSettings() {
   loadSettings();
   bindRange('cfgSens',  'mouseSensitivity', 'cfgSensVal');
+  bindRange('cfgSensY', 'mouseSensY',       'cfgSensYVal');
   bindRange('cfgDead',  'mouseDeadZone',    'cfgDeadVal');
   bindRange('cfgMaxRot','mouseMaxRotSpeed', 'cfgMaxRotVal', v=>Number(v).toFixed(1));
   bindCheckbox('cfgInvertY', 'invertY');
@@ -5238,6 +5245,8 @@ function initSettings() {
     // 刷新输入控件值
     document.getElementById('cfgSens').value = CONFIG.mouseSensitivity;
     document.getElementById('cfgSensVal').textContent = CONFIG.mouseSensitivity.toFixed(2);
+    document.getElementById('cfgSensY').value = CONFIG.mouseSensY;
+    document.getElementById('cfgSensYVal').textContent = CONFIG.mouseSensY.toFixed(2);
     document.getElementById('cfgDead').value = CONFIG.mouseDeadZone;
     document.getElementById('cfgDeadVal').textContent = CONFIG.mouseDeadZone.toFixed(2);
     document.getElementById('cfgMaxRot').value = CONFIG.mouseMaxRotSpeed;

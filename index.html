@@ -267,6 +267,8 @@
     border-radius:3px; transition:width .1s ease-out; }
   .ehp-bar.boss .ehp-track { width:100px; height:7px; }
   .ehp-bar.boss .ehp-fill { background:#a855f7; }
+  .ehp-name { font-size:11px; font-weight:bold; color:#D9F3FF; white-space:nowrap;
+    text-shadow:0 0 3px rgba(0,0,0,0.9); margin-bottom:2px; letter-spacing:1px; }
 
   /* 提示信息 */
   #msg { position:fixed; left:50%; top:28%; transform:translate(-50%,-50%);
@@ -1536,6 +1538,7 @@ const bulletGeo = new THREE.SphereGeometry(0.015,4,4);
 const _afDir = new THREE.Vector3();
 const _afToE = new THREE.Vector3();
 let _autoFireTarget = false;
+let _aimTarget = null;
 
 function fire() {
   if (!gameState.running || gameState.paused) return;
@@ -1662,13 +1665,6 @@ function explode(pos, big=false) {
 const _explodeGeo = new THREE.BoxGeometry(0.2,0.2,0.2);
 const _explodeMatBig = new THREE.MeshBasicMaterial({ color:0xef4444, transparent:true });
 const _explodeMatSmall = new THREE.MeshBasicMaterial({ color:0xfb923c, transparent:true });
-  Audio.explosion();
-  // 爆炸闪光
-  const fl = new THREE.PointLight(0xfb923c, big?6:3, big?20:10);
-  fl.position.copy(pos);
-  scene.add(fl);
-  setTimeout(()=>scene.remove(fl), big?300:150);
-}
 
 /* ================= 敌人系统 ================= */
 const enemies = [];
@@ -2360,6 +2356,7 @@ function endRest() {
     startNextWave();
   } else {
     setMsg('尸潮来袭', 2000, '#ef4444');
+    stageIntroEl.classList.remove('show', 'boss'); // 隐藏阶段提示
     Audio.wave();
     startNextWave();
   }
@@ -4400,6 +4397,8 @@ const tmpVec = new THREE.Vector3();
 const moveDir = new THREE.Vector3();
 const forwardVec = new THREE.Vector3();
 const rightVec = new THREE.Vector3();
+const knockbackVel = new THREE.Vector3(0, 0, 0); // 独立击退速度
+
 function updatePlayer(dt) {
   // 输入向量（基于相机朝向，y 分量忽略）
   moveDir.set(0, 0, 0);
@@ -4421,8 +4420,14 @@ function updatePlayer(dt) {
   const sprint = keys['ShiftLeft'] || keys['ShiftRight'] ? 1.45 : 1.0;
   const meleeBoost = WEAPONS[currentWeapon].speedBonus || 1.0; // 近战加速
   const horizSpeed = player.speed * sprint * meleeBoost;
-  player.vel.x = (forwardVec.x * -moveDir.z + rightVec.x * moveDir.x) * horizSpeed;
-  player.vel.z = (forwardVec.z * -moveDir.z + rightVec.z * moveDir.x) * horizSpeed;
+  player.vel.x = (forwardVec.x * -moveDir.z + rightVec.x * moveDir.x) * horizSpeed + knockbackVel.x;
+  player.vel.z = (forwardVec.z * -moveDir.z + rightVec.z * moveDir.x) * horizSpeed + knockbackVel.z;
+
+  // 击退阻尼衰减
+  knockbackVel.x *= Math.pow(0.02, dt);
+  knockbackVel.z *= Math.pow(0.02, dt);
+  if (Math.abs(knockbackVel.x) < 0.1) knockbackVel.x = 0;
+  if (Math.abs(knockbackVel.z) < 0.1) knockbackVel.z = 0;
 
   // 重力
   player.vel.y -= player.gravity * dt;
@@ -4485,8 +4490,8 @@ function updateEnemyHpBar() {
   const halfW = innerWidth / 2, halfH = innerHeight / 2;
   enemies.forEach(e => {
     if (!e.userData || !e.userData.alive) return;
-    // 只显示受伤的怪物血条（满血不显示，除非是Boss）
-    if (e.userData.hp >= e.userData.maxHp && !e.userData.isBoss) return;
+    // 只显示受伤的怪物血条（满血不显示，除非是Boss或准心对准）
+    if (e.userData.hp >= e.userData.maxHp && !e.userData.isBoss && e !== _aimTarget) return;
     // 3D 坐标投影到屏幕
     const headPos = new THREE.Vector3().copy(e.position);
     headPos.y += e.userData.size * 0.6 + 0.3;
@@ -4515,6 +4520,11 @@ function updateEnemyHpBar() {
       bar.style.transform = 'translate(-50%,-100%)';
     }
     bar.innerHTML = `<div class="ehp-track"><div class="ehp-fill" style="width:${pct.toFixed(0)}%"></div></div>`;
+    // 准心对准时显示名字
+    if (e === _aimTarget) {
+      const name = e.userData.name || (ENEMY_TYPES[e.userData.type] && ENEMY_TYPES[e.userData.type].name) || '';
+      bar.innerHTML = `<div class="ehp-name">${name}</div>` + bar.innerHTML;
+    }
     enemyHpBarsEl.appendChild(bar);
   });
 }
@@ -4579,6 +4589,23 @@ function update(dt) {
     if (_autoFireTarget) chEl.classList.add('auto-target');
     else chEl.classList.remove('auto-target');
   }
+
+  // 准心目标名称显示（挂载在血条上）
+  let aimTarget = null;
+  camera.getWorldDirection(_afDir);
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    if (!e.userData || !e.userData.alive) continue;
+    _afToE.subVectors(e.position, camera.position);
+    const dist = _afToE.length();
+    if (dist < 1 || dist > 60) continue;
+    _afToE.normalize();
+    const dot = _afDir.dot(_afToE);
+    const sz = e.userData.size || 1;
+    const threshold = Math.cos(Math.atan2(sz * 0.5, dist) + 0.02);
+    if (dot > threshold) { aimTarget = e; break; }
+  }
+  _aimTarget = aimTarget;
 
   /* 生成 */
   if (gameState.resting) {
@@ -4762,10 +4789,28 @@ function update(dt) {
       if (ud.type === 'bomber') {
         const r = ENEMY_TYPES.bomber.explodeRadius;
         const ePos = e.position.clone();
-        // 轻量爆炸视觉
+        // 爆炸视觉
         explode(ePos, true);
+        explode(ePos, false);
         Audio.explosion();
-        // 简单闪光
+        // 冲击波环
+        const shockRing = new THREE.Mesh(
+          new THREE.RingGeometry(0.5, 1.5, 16),
+          new THREE.MeshBasicMaterial({ color:0xff6b00, transparent:true, opacity:0.7, side:THREE.DoubleSide })
+        );
+        shockRing.rotation.x = -Math.PI/2;
+        shockRing.position.copy(ePos); shockRing.position.y = 0.15;
+        scene.add(shockRing);
+        let st = 0;
+        const shockAnim = () => {
+          st += 0.05;
+          shockRing.scale.setScalar(1 + st * r * 1.2);
+          shockRing.material.opacity = Math.max(0, 0.7 - st * 0.9);
+          if (st < 1) requestAnimationFrame(shockAnim);
+          else scene.remove(shockRing);
+        };
+        shockAnim();
+        // 闪光
         const bigFlash = new THREE.PointLight(0xff4500, 6, r * 1.5);
         bigFlash.position.copy(ePos); bigFlash.position.y += 1;
         scene.add(bigFlash);
@@ -4778,10 +4823,6 @@ function update(dt) {
           let dmgToHp = bDmg;
           if (gameState.shield > 0) { const ab = Math.min(gameState.shield, bDmg); gameState.shield -= ab; dmgToHp -= ab; }
           if (dmgToHp > 0) gameState.hp -= dmgToHp;
-          // 爆炸击退
-          const kb = new THREE.Vector3().subVectors(player.pos, ePos).setY(0).normalize();
-          const kbForce = 8 * falloff;
-          player.vel.x += kb.x * kbForce; player.vel.z += kb.z * kbForce;
         }
         // 对周围怪物造成伤害（距离衰减）
         const waveMul = 1 + (gameState.wave - 1) * 0.40;
@@ -4816,14 +4857,12 @@ function update(dt) {
       if (ud.isBoss) {
         flashDamage();
         const kb = new THREE.Vector3().subVectors(player.pos, e.position).setY(0).normalize();
-        player.vel.x += kb.x*8; player.vel.z += kb.z*8;
+        knockbackVel.x += kb.x*8; knockbackVel.z += kb.z*8;
         refreshHUD();
         if (gameState.hp <= 0) { gameOver(); return; }
       } else {
         explode(e.position, false); scene.remove(e); enemies.splice(i,1);
         flashDamage();
-        const kb = new THREE.Vector3().subVectors(player.pos, e.position).setY(0).normalize();
-        player.vel.x += kb.x*4; player.vel.z += kb.z*4;
         refreshHUD();
         if (gameState.hp <= 0) { gameOver(); return; }
       }

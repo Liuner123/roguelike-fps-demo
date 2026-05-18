@@ -1645,25 +1645,23 @@ scene.add(muzzleFlash);
 /* ================= 爆炸 ================= */
 function explode(pos, big=false) {
   const group = new THREE.Group();
-  const count = big ? 22 : 10;
+  const count = big ? 8 : 4;
   for (let i=0; i<count; i++) {
-    const p = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2,0.2,0.2),
-      new THREE.MeshStandardMaterial({
-        color:big?0xef4444:0xfb923c, emissive:big?0xef4444:0xfb923c, emissiveIntensity:1.5,
-        transparent:true
-      })
-    );
+    const p = new THREE.Mesh(_explodeGeo, big ? _explodeMatBig.clone() : _explodeMatSmall.clone());
     p.position.copy(pos);
     p.userData.v = new THREE.Vector3(
-      (Math.random()-0.5)*(big?12:6),
-      Math.random()*(big?6:4)+1,
-      (Math.random()-0.5)*(big?12:6)
+      (Math.random()-0.5)*(big?8:4),
+      Math.random()*(big?4:3)+1,
+      (Math.random()-0.5)*(big?8:4)
     );
     group.add(p);
   }
-  group.userData.life = big ? 1.0 : 0.6;
+  group.userData.life = big ? 0.6 : 0.4;
   scene.add(group); explosions.push(group);
+}
+const _explodeGeo = new THREE.BoxGeometry(0.2,0.2,0.2);
+const _explodeMatBig = new THREE.MeshBasicMaterial({ color:0xef4444, transparent:true });
+const _explodeMatSmall = new THREE.MeshBasicMaterial({ color:0xfb923c, transparent:true });
   Audio.explosion();
   // 爆炸闪光
   const fl = new THREE.PointLight(0xfb923c, big?6:3, big?20:10);
@@ -4764,32 +4762,14 @@ function update(dt) {
       if (ud.type === 'bomber') {
         const r = ENEMY_TYPES.bomber.explodeRadius;
         const ePos = e.position.clone();
-        // 多层爆炸视觉
-        spawnSkillExplosion(ePos, 0xff4500, r, true);
-        spawnSkillExplosion(ePos, 0xfbbf24, r*0.6, false);
+        // 轻量爆炸视觉
+        explode(ePos, true);
         Audio.explosion();
-        // 地面冲击波环
-        const shockRing = new THREE.Mesh(
-          new THREE.RingGeometry(0.5, 1.5, 32),
-          new THREE.MeshBasicMaterial({ color:0xff6b00, transparent:true, opacity:0.7, side:THREE.DoubleSide })
-        );
-        shockRing.rotation.x = -Math.PI/2;
-        shockRing.position.copy(ePos); shockRing.position.y = 0.15;
-        scene.add(shockRing);
-        let st = 0;
-        const shockAnim = () => {
-          st += 0.04;
-          shockRing.scale.setScalar(1 + st * r * 1.2);
-          shockRing.material.opacity = Math.max(0, 0.7 - st * 0.8);
-          if (st < 1) requestAnimationFrame(shockAnim);
-          else scene.remove(shockRing);
-        };
-        shockAnim();
-        // 强烈爆炸闪光
-        const bigFlash = new THREE.PointLight(0xff4500, 8, r * 2);
+        // 简单闪光
+        const bigFlash = new THREE.PointLight(0xff4500, 6, r * 1.5);
         bigFlash.position.copy(ePos); bigFlash.position.y += 1;
         scene.add(bigFlash);
-        setTimeout(() => scene.remove(bigFlash), 250);
+        setTimeout(() => scene.remove(bigFlash), 200);
         // 距离衰减伤害
         const dToPlayer = player.pos.distanceTo(ePos);
         if (dToPlayer < r) {
@@ -4916,12 +4896,14 @@ function update(dt) {
   for (let i=explosions.length-1; i>=0; i--) {
     const g = explosions[i];
     g.userData.life -= dt;
-    g.children.forEach(p => {
+    const lifeRatio = Math.max(0, g.userData.life / 0.6);
+    for (let ci = g.children.length-1; ci>=0; ci--) {
+      const p = g.children[ci];
       p.position.addScaledVector(p.userData.v, dt);
       p.userData.v.y -= 9.8 * dt;
-      p.material.opacity = Math.max(0, g.userData.life / 0.6);
-      p.scale.multiplyScalar(0.96);
-    });
+      p.material.opacity = lifeRatio;
+      p.scale.multiplyScalar(0.94);
+    }
     if (g.userData.life <= 0) { scene.remove(g); explosions.splice(i,1); }
   }
 

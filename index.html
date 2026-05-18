@@ -869,7 +869,7 @@ const CONFIG = {
   bossUnlockWave:  12,   // 第几波开始出现 Boss 门（可提前挑战）
   maxRevives:      5,    // 阶段一最大复活次数
   // —— 等级 —— 
-  expBase:         80,   // 升到 2 级所需经验
+  expBase:         64,   // 升到 2 级所需经验（80×0.8）
   expGrowth:       1.18, // 每级所需经验倍率（平滑增长）
   expPerKillBase:  10,   // 普通敌人击杀经验（实际还会乘以敌人价值系数）
   // —— 雷达 —— 
@@ -933,7 +933,7 @@ addEventListener('resize', () => {
 scene.add(new THREE.HemisphereLight(0x88aaff, 0x223344, 0.7));
 const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
 dirLight.position.set(20,30,10); dirLight.castShadow = true;
-dirLight.shadow.mapSize.set(1024,1024);
+dirLight.shadow.mapSize.set(512,512);
 Object.assign(dirLight.shadow.camera, { left:-40, right:40, top:40, bottom:-40 });
 scene.add(dirLight);
 
@@ -992,13 +992,10 @@ for (let s = 0; s < wallSegments; s++) {
   terrainObjs.push(wall);
 }
 
-// 出怪口标记（红色光柱）
+// 出怪口标记（地面环）
 gateAngles.forEach(a => {
   const gx = Math.cos(a) * ARENA_RADIUS;
   const gz = Math.sin(a) * ARENA_RADIUS;
-  const gateLight = new THREE.PointLight(0xef4444, 1, 15);
-  gateLight.position.set(gx, 3, gz);
-  scene.add(gateLight);
   // 地面标记
   const gateMark = new THREE.Mesh(
     new THREE.RingGeometry(1.5, 2.5, 16),
@@ -1781,19 +1778,16 @@ function spawnEnemy(typeKey, levelBonus=1) {
     const cross2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.6, 0.15),
       new THREE.MeshStandardMaterial({ color:0x4ade80, emissive:0x22c55e, emissiveIntensity:1.5 }));
     cross2.position.y = type.size*0.55; e.add(cross2);
-    const healLight = new THREE.PointLight(0x22c55e, 0.8, 8); healLight.position.y = type.size*0.3; e.add(healLight);
   } else if (typeKey === 'shielder') {
     // 蓝色护盾面板
     const shield = new THREE.Mesh(new THREE.PlaneGeometry(type.size*1.5, type.size*1.2),
       new THREE.MeshStandardMaterial({ color:0x60a5fa, emissive:0x3b82f6, emissiveIntensity:0.6, transparent:true, opacity:0.4, side:THREE.DoubleSide }));
     shield.position.z = -type.size*0.7; e.add(shield);
-    const shieldLight = new THREE.PointLight(0x3b82f6, 0.6, 6); shieldLight.position.z = -type.size*0.5; e.add(shieldLight);
   } else if (typeKey === 'assassin') {
     // 尖锐流线型+拖尾
     const spike = new THREE.Mesh(new THREE.ConeGeometry(type.size*0.3, type.size*0.8, 4),
       new THREE.MeshStandardMaterial({ color:0xec4899, emissive:0xec4899, emissiveIntensity:1 }));
     spike.rotation.x = -Math.PI/2; spike.position.z = -type.size*0.5; e.add(spike);
-    const trail = new THREE.PointLight(0xec4899, 0.8, 4); trail.position.z = type.size*0.4; e.add(trail);
   } else if (typeKey === 'tankElite') {
     // 厚重装甲+肩甲
     for (let s of [-1, 1]) {
@@ -1813,10 +1807,9 @@ function spawnEnemy(typeKey, levelBonus=1) {
       wing.position.set(s*type.size*0.6, type.size*0.1, 0);
       wing.rotation.z = s*0.3; wing.userData._wing = true; wing.userData._side = s; e.add(wing);
     }
-    const orbLight = new THREE.PointLight(0x8b5cf6, 1, 6); orbLight.position.y = -type.size*0.3; e.add(orbLight);
   }
 
-  e.castShadow = true;
+  e.castShadow = false;
   const gateIdx = Math.floor(Math.random() * GATE_COUNT);
   const gateAngle = gateAngles[gateIdx];
   const spawnR = ARENA_RADIUS - 1;
@@ -3884,9 +3877,11 @@ function buildWaveQueue(wave) {
   if (wave >= CONFIG.bossWave) return [];
   const queue = [];
   const baseCount = 60;
-  const growthFactor = 1.22;
+  const growthFactor = 1.15;
   let totalCount = Math.floor(baseCount * Math.pow(growthFactor, wave - 1));
   if (wave <= 8) totalCount = Math.floor(totalCount * 1.5);
+  // 上限250只，避免后期卡顿
+  totalCount = Math.min(totalCount, 250);
 
   for (let i = 0; i < totalCount; i++) {
     const rnd = Math.random();
@@ -3950,7 +3945,7 @@ function enterBossPhase() {
 
 function spawnFinalBoss() {
   const bossSize = 5;
-  const bossHp = 500 + gameState.level * 50;
+  const bossHp = (500 + gameState.level * 50) * 2;
   const bossGroup = new THREE.Group();
   // 主体
   const mat = new THREE.MeshStandardMaterial({
@@ -4645,7 +4640,7 @@ function update(dt) {
   /* 敌人移动 + AI */
   for (let i=enemies.length-1; i>=0; i--) {
     const e = enemies[i];
-    if (!e.userData.alive) continue;
+    if (!e.userData.alive) { scene.remove(e); enemies.splice(i,1); continue; }
     const ud = e.userData;
     if (ud._barrageMark > 0) ud._barrageMark -= dt;
     ud._actionTimer += dt;
@@ -4700,7 +4695,7 @@ function update(dt) {
       enemies.forEach(other => {
         if (other === e || !other.userData.alive) return;
         if (other.position.distanceTo(e.position) < 8) {
-          other.userData.hp = Math.min(other.userData.maxHp, other.userData.hp + other.userData.maxHp * 0.1);
+          other.userData.hp = Math.min(other.userData.maxHp, other.userData.hp + other.userData.maxHp * 0.08);
         }
       });
       // 扔手榴弹
@@ -4789,32 +4784,19 @@ function update(dt) {
       if (ud.type === 'bomber') {
         const r = ENEMY_TYPES.bomber.explodeRadius;
         const ePos = e.position.clone();
-        // 爆炸视觉
-        explode(ePos, true);
-        explode(ePos, false);
         Audio.explosion();
-        // 冲击波环
-        const shockRing = new THREE.Mesh(
-          new THREE.RingGeometry(0.5, 1.5, 16),
-          new THREE.MeshBasicMaterial({ color:0xff6b00, transparent:true, opacity:0.7, side:THREE.DoubleSide })
-        );
-        shockRing.rotation.x = -Math.PI/2;
-        shockRing.position.copy(ePos); shockRing.position.y = 0.15;
-        scene.add(shockRing);
-        let st = 0;
-        const shockAnim = () => {
-          st += 0.05;
-          shockRing.scale.setScalar(1 + st * r * 1.2);
-          shockRing.material.opacity = Math.max(0, 0.7 - st * 0.9);
-          if (st < 1) requestAnimationFrame(shockAnim);
-          else scene.remove(shockRing);
-        };
-        shockAnim();
-        // 闪光
-        const bigFlash = new THREE.PointLight(0xff4500, 6, r * 1.5);
-        bigFlash.position.copy(ePos); bigFlash.position.y += 1;
-        scene.add(bigFlash);
-        setTimeout(() => scene.remove(bigFlash), 200);
+        // 只在玩家朝向该自爆怪时播放视觉特效
+        const _bDir = new THREE.Vector3();
+        camera.getWorldDirection(_bDir);
+        const _bToE = new THREE.Vector3().subVectors(ePos, camera.position).normalize();
+        const facing = _bDir.dot(_bToE) > 0.3;
+        if (facing) {
+          explode(ePos, true);
+          const bigFlash = new THREE.PointLight(0xff4500, 6, r * 1.5);
+          bigFlash.position.copy(ePos); bigFlash.position.y += 1;
+          scene.add(bigFlash);
+          setTimeout(() => scene.remove(bigFlash), 200);
+        }
         // 距离衰减伤害
         const dToPlayer = player.pos.distanceTo(ePos);
         if (dToPlayer < r) {
@@ -4827,21 +4809,15 @@ function update(dt) {
         // 对周围怪物造成伤害（距离衰减）
         const waveMul = 1 + (gameState.wave - 1) * 0.40;
         for (let j = enemies.length - 1; j >= 0; j--) {
-          if (j === i) continue; // 跳过自己
           const other = enemies[j];
-          if (!other.userData || !other.userData.alive) continue;
+          if (!other || other === e || !other.userData || !other.userData.alive) continue;
           const d2e = ePos.distanceTo(other.position);
           if (d2e < r) {
             const eDmg = ud.dmg * (1 - d2e / r) * waveMul;
             damageEnemy(other, eDmg);
-            if (other.userData.hp <= 0) {
-              killEnemy(other);
-              // 索引修正
-              if (j < i) i--;
-            }
           }
         }
-        explode(ePos, true); scene.remove(e); enemies.splice(i,1);
+        scene.remove(e); enemies.splice(i,1);
         flashDamage(); refreshHUD();
         if (gameState.hp <= 0) { gameOver(); return; }
         continue;
@@ -4958,6 +4934,14 @@ function update(dt) {
   updateBossAI(dt);
   updateFPWeapon(dt);
   updateEnemyHpBar();
+  // 安全清理：移除场景中已死或hp<=0但仍在scene的怪物
+  for (let i = scene.children.length - 1; i >= 0; i--) {
+    const c = scene.children[i];
+    if (c.userData && c.userData.type && (c.userData.alive === false || c.userData.hp <= 0)) {
+      scene.remove(c);
+      const ei = enemies.indexOf(c); if (ei >= 0) enemies.splice(ei, 1);
+    }
+  }
   renderSkillBar();
   renderWeaponSkills();
   drawRadar();

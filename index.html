@@ -276,19 +276,21 @@
   #msg.show { opacity:1; }
 
   /* 阶段提示（一屏显示） */
-  #stageIntro { position:fixed; left:50%; top:40%; transform:translate(-50%,-50%);
-    z-index:14; display:none; text-align:center; pointer-events:none; }
+  #stageIntro { position:fixed; left:50%; top:35%; transform:translate(-50%,-50%);
+    z-index:14; display:none; pointer-events:none; width:535px; height:87px; overflow:hidden; }
   #stageIntro.show { display:block; animation:stageIn 3.5s ease-out forwards; }
-  .stage-phase { font-size:18px; color:#94a3b8; letter-spacing:6px;
-    text-transform:uppercase; margin-bottom:8px; opacity:0.7; }
-  .stage-slogan { font-size:52px; font-weight:bold; letter-spacing:8px;
-    background:linear-gradient(90deg,#508BF3,#fde047,#ef4444);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    text-shadow:none; filter:drop-shadow(0 0 20px rgba(253,224,71,0.4)); }
+  .stage-header { position:absolute; left:20px; top:0; width:495px; height:36px; overflow:hidden; }
+  .stage-header img { width:100%; height:100%; position:absolute; left:0; top:0; }
+  .stage-phase { position:absolute; left:50%; top:4px; transform:translateX(-50%);
+    font-size:18px; font-weight:650; letter-spacing:2px; white-space:nowrap;
+    color:rgba(217,243,255,0.7); text-shadow:1px 2px 0px rgba(0,0,0,0.75); }
+  .stage-body { position:absolute; left:0; top:36px; width:535px; height:51px; overflow:hidden; }
+  .stage-body img { width:100%; height:100%; position:absolute; left:0; top:0; }
+  .stage-slogan { position:absolute; left:50%; top:8px; transform:translateX(-50%);
+    font-size:24px; font-weight:800; letter-spacing:4px; white-space:nowrap;
+    color:#D9F3FF; text-shadow:1px 2px 0px rgba(0,0,0,0.75); }
   #stageIntro.boss .stage-slogan {
-    background:linear-gradient(90deg,#ef4444,#fde047,#ef4444);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    filter:drop-shadow(0 0 24px rgba(239,68,68,0.5)); }
+    color:#D9F3FF; text-shadow:1px 2px 0px rgba(0,0,0,0.75); }
   @keyframes stageIn {
     0%   { opacity:0; transform:translate(-50%,-50%) scale(0.8); }
     15%  { opacity:1; transform:translate(-50%,-50%) scale(1.05); }
@@ -711,8 +713,14 @@
 <div id="enemyHpBars"></div>
 <div id="msg"></div>
 <div id="stageIntro">
-  <div class="stage-phase" id="stagePhase">阶段一</div>
-  <div class="stage-slogan" id="stageSlogan">越战越强，活到最后</div>
+  <div class="stage-header">
+    <img src="assets/CodeBuddyAssets/28098_171467/1.png" alt="">
+    <div class="stage-phase" id="stagePhase">阶段 1/2</div>
+  </div>
+  <div class="stage-body">
+    <img src="assets/CodeBuddyAssets/28098_171467/2.png" alt="">
+    <div class="stage-slogan" id="stageSlogan">越战越强，撑到最后！</div>
+  </div>
 </div>
 <div id="floats"></div>
 <div id="hurtVignette"></div>
@@ -2124,7 +2132,7 @@ const stagePhaseEl = document.getElementById('stagePhase');
 const stageSloganEl = document.getElementById('stageSlogan');
 
 function showStageIntro() {
-  showStageScreen('阶段一', '越战越强，活到最后', false);
+  showStageScreen('阶段 1/2', '越战越强，撑到最后！', false);
 }
 
 function showStageScreen(phase, slogan, isBoss) {
@@ -3926,7 +3934,7 @@ function enterBossPhase() {
   bossGateActive = false;
   gatePromptEl.style.display = 'none';
   // 阶段二提示
-  showStageScreen('阶段二', '击败BOSS', true);
+  showStageScreen('阶段 2/2', '击败BOSS', true);
   Audio.beep({ freq:110, type:'sawtooth', duration:0.6, volume:0.4, slideTo:55 });
   setTimeout(()=>Audio.beep({ freq:220, type:'sawtooth', duration:0.4, volume:0.3, slideTo:110 }), 500);
   setTimeout(()=>Audio.beep({ freq:330, type:'square', duration:0.3, volume:0.35 }), 1000);

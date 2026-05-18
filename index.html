@@ -47,9 +47,13 @@
 
   /* 雷达 */
   #radar { position:fixed; top:12px; left:210px; z-index:10;
-    background:rgba(0,0,0,0.55); border-radius:50%;
-    border:2px solid rgba(80,139,243,0.5);
-    box-shadow:0 0 18px rgba(80,139,243,0.25); }
+    border-radius:50%; overflow:hidden; width:216px; height:216px; }
+  #radarBg { position:absolute; inset:0; border-radius:50%;
+    background:#10171D; opacity:0.3; }
+  #radarBg2 { position:absolute; inset:0; border-radius:50%;
+    background:#10171D; opacity:0.3; }
+  #radarInner { position:absolute; inset:10px; border-radius:50%;
+    background:#10171D; opacity:0.4; }
 
   /* 右上角设置按钮 */
   #settingsBtn { position:fixed; top:14px; right:18px; z-index:12;
@@ -163,34 +167,41 @@
     color:#fde047; text-shadow:0 0 4px rgba(0,0,0,0.7); }
 
   /* 生命条 + 护盾条：左下角 */
-  #hpWrap { position:fixed; left:18px;
-    bottom:80px; z-index:11; display:flex; flex-direction:column; align-items:flex-start; gap:4px;
-    background:rgba(0,0,0,0.55); padding:8px 14px; border-radius:10px;
-    border:1px solid rgba(248,113,113,0.4);
-    box-shadow:0 0 16px rgba(239,68,68,0.2); }
-  .shield-row, .hp-row { display:flex; align-items:center; gap:8px; width:100%; }
-  .shield-label { font-size:14px; width:24px; text-align:center; }
-  .hp-label { color:#f87171; font-size:12px; font-weight:bold; letter-spacing:1px; width:24px; text-align:center; }
-  .shieldbar { position:relative; width:280px; height:10px;
-    background:rgba(255,255,255,0.08); border-radius:5px; overflow:hidden;
-    border:1px solid rgba(255,255,255,0.3); }
-  .shieldbar-fill { height:100%; width:100%;
-    background:linear-gradient(90deg,#e2e8f0,#ffffff);
-    box-shadow:0 0 6px rgba(255,255,255,0.4);
-    transition:width .15s ease-out; }
-  .shield-text { position:absolute; left:50%; top:50%;
-    transform:translate(-50%,-50%); font-size:10px; color:#fff;
-    text-shadow:0 0 3px rgba(0,0,0,0.9); font-weight:bold; }
-  .hpbar-big { position:relative; width:280px; height:14px;
-    background:rgba(255,255,255,0.08); border-radius:7px; overflow:hidden;
-    border:1px solid rgba(255,255,255,0.12); }
-  .hpbar-big-fill { height:100%; width:100%;
-    background:linear-gradient(90deg,#fca5a5,#ef4444);
-    box-shadow:0 0 8px rgba(239,68,68,0.6);
-    transition:width .15s ease-out; }
-  .hp-text { position:absolute; left:50%; top:50%;
-    transform:translate(-50%,-50%); font-size:11px; color:#fff;
-    text-shadow:0 0 3px rgba(0,0,0,0.9); font-weight:bold; }
+  #hpWrap { position:fixed; left:10px;
+    bottom:50px; z-index:11; width:320px; height:100px; pointer-events:none;
+    transform:scale(0.8); transform-origin:bottom left; }
+  .hp-avatar { position:absolute; left:10px; top:6px; width:80px; height:80px; }
+  .hp-avatar img { width:80px; height:80px; object-fit:cover; }
+  .hp-level-badge { position:absolute; left:-4px; bottom:-18px; width:38px; height:38px; }
+  .hp-level-badge img { width:38px; height:38px; }
+  .hp-level-badge .lv-num { position:absolute; font-size:14px; font-weight:400; color:#DAE3E5;
+    text-shadow:2px 3px 0px rgba(0,0,0,0.75); top:14px; left:50%; transform:translateX(-50%); }
+  /* 盾条（上方，分段式，间隔透明） */
+  .new-shieldbar { position:absolute; left:104px; top:26px; width:296px; height:24px;
+    background:rgba(16,23,29,0.15); outline:2px rgba(218,227,229,0.15) solid; outline-offset:-2px; }
+  .new-shieldbar-inner { position:absolute; left:4px; top:4px; right:4px; bottom:4px;
+    display:flex; gap:4px; }
+  .shield-seg { flex:1; height:100%; position:relative; overflow:hidden;
+    background:rgba(218,227,229,0.15); }
+  .shield-seg-fill { position:absolute; left:0; top:0; bottom:0; width:0%;
+    background:#4DA0F9; border:1.5px solid #60BFEB; transition:width .15s; }
+  .new-shieldbar .bar-value { position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    display:flex; align-items:center; gap:4px; z-index:2; }
+  .new-shieldbar .bar-value img { width:14px; height:14px; }
+  .new-shieldbar .bar-value span { font-size:13px; font-weight:650; color:#101011;
+    opacity:0.8; font-family:monospace; }
+  /* 血条（下方） */
+  .new-hpbar { position:absolute; left:103px; top:58px; width:296px; height:36px;
+    background:rgba(16,23,29,0.15); outline:2px rgba(218,227,229,0.15) solid; outline-offset:-2px; }
+  .new-hpbar-bg { position:absolute; left:4px; top:4px; right:4px; bottom:4px;
+    background:rgba(218,227,229,0.15); }
+  .new-hpbar-fill { position:absolute; left:4px; top:4px; bottom:4px; width:0;
+    background:#DAE3E5; border:2px solid #E6E9EA; transition:width .15s; box-sizing:border-box; }
+  .new-hpbar .bar-value { position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    display:flex; align-items:center; gap:4px; z-index:2; }
+  .new-hpbar .bar-value img { width:14px; height:14px; }
+  .new-hpbar .bar-value span { font-size:13px; font-weight:650; color:#101011;
+    opacity:0.8; font-family:monospace; }
 
   /* 升级金色边缘特效 */
   #levelVignette { position:fixed; inset:0; pointer-events:none; z-index:8;
@@ -590,7 +601,12 @@
   <div class="wave-bar"><div class="wave-bar-fill" id="waveBarFill"></div></div>
 </div>
 
-<canvas id="radar" width="180" height="180"></canvas>
+<div id="radar">
+  <div id="radarBg"></div>
+  <div id="radarBg2"></div>
+  <div id="radarInner"></div>
+  <canvas id="radarCanvas" width="216" height="216" style="position:relative;z-index:1;width:216px;height:216px;"></canvas>
+</div>
 
 <!-- 右上角设置按钮 -->
 <button id="settingsBtn" title="设置 (P)">⚙</button>
@@ -714,7 +730,6 @@
 
 <!-- 经验条（底部贯穿） -->
 <div id="expWrap">
-  <div class="lv-pill"><span class="lv-label">Lv.</span><span id="levelNum">1</span></div>
   <div class="expbar"><div class="expbar-fill" id="expFill"></div>
     <span class="exp-text"><span id="expText">0/50</span> EXP</span>
   </div>
@@ -722,16 +737,31 @@
 
 <!-- 生命条 + 护盾条（底部中央） -->
 <div id="hpWrap">
-  <div class="shield-row">
-    <div class="shield-label">🛡</div>
-    <div class="shieldbar"><div class="shieldbar-fill" id="shieldFill"></div>
-      <span class="shield-text"><span id="shieldText">50</span> / <span id="shieldMaxText">50</span></span>
+  <div class="hp-avatar">
+    <img src="assets/CodeBuddyAssets/28092_167462/4.png" alt="avatar">
+    <div class="hp-level-badge">
+      <img src="assets/CodeBuddyAssets/28092_167462/1.svg" alt="lv">
+      <span class="lv-num" id="avatarLevel">1</span>
     </div>
   </div>
-  <div class="hp-row">
-    <div class="hp-label">HP</div>
-    <div class="hpbar-big"><div class="hpbar-big-fill" id="hpbarFill"></div>
-      <span class="hp-text"><span id="hpText">100</span> / <span id="hpMaxText">100</span></span>
+  <div class="new-shieldbar">
+    <div class="new-shieldbar-inner">
+      <div class="shield-seg"><div class="shield-seg-fill" id="shieldSeg1"></div></div>
+      <div class="shield-seg"><div class="shield-seg-fill" id="shieldSeg2"></div></div>
+      <div class="shield-seg"><div class="shield-seg-fill" id="shieldSeg3"></div></div>
+      <div class="shield-seg"><div class="shield-seg-fill" id="shieldSeg4"></div></div>
+    </div>
+    <div class="bar-value">
+      <img src="assets/CodeBuddyAssets/28092_167462/3.svg" alt="shield">
+      <span id="shieldText">50</span>
+    </div>
+  </div>
+  <div class="new-hpbar">
+    <div class="new-hpbar-bg"></div>
+    <div class="new-hpbar-fill" id="hpbarFill"></div>
+    <div class="bar-value">
+      <img src="assets/CodeBuddyAssets/28092_167462/2.svg" alt="hp">
+      <span id="hpText">100</span>
     </div>
   </div>
 </div>
@@ -1515,19 +1545,19 @@ function fire() {
       if (dist > range) return;
       toE.normalize();
       const dot = toE.dot(mDir);
-      if (dot > 0.4) { // ~66° 前方锥形
+      if (dot > 0.4) {
         damageEnemy(e, w.dmg * totalDmgMul);
       }
     });
     spawnSlashEffect(player.pos, mDir, w.color, range);
-    fpSwingTime = 0.25; // 触发第一人称挥砍动画
+    fpSwingTime = 0.25;
     Audio.beep({ freq:300, type:'sawtooth', duration:0.08, volume:0.2, slideTo:100 });
   } else if (w.pellets) {
     // 霰弹枪：多弹丸散射
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir); dir.normalize();
     const origin = camera.position.clone();
-    const burstMul = weaponSkillActive[1] > 0 ? 3 : 1; // 爆裂弹×3
+    const burstMul = weaponSkillActive[1] > 0 ? 3 : 1;
     for (let p = 0; p < w.pellets; p++) {
       const spread = new THREE.Vector3(
         dir.x + (Math.random()-0.5) * w.spread,
@@ -1536,9 +1566,8 @@ function fire() {
       ).normalize();
       spawnBullet(origin.clone(), spread, w.color, w.dmg * totalDmgMul * burstMul);
     }
-    // 爆裂弹击退
     if (weaponSkillActive[1] > 0) {
-      weaponSkillActive[1] = 0; // 单次消耗
+      weaponSkillActive[1] = 0;
       enemies.slice().forEach(e => {
         const d = e.position.distanceTo(player.pos);
         if (d < 8) {
@@ -1553,7 +1582,7 @@ function fire() {
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir); dir.normalize();
     const origin = camera.position.clone();
-    spawnBullet(origin, dir, w.color, w.dmg * totalDmgMul);
+    spawnBullet(camera.position.clone(), dir, w.color, w.dmg * totalDmgMul);
     Audio.shoot();
   }
   muzzleFlash.intensity = 3;
@@ -2063,11 +2092,9 @@ const ui = {
   gold: document.getElementById('gold'),
   revives: document.getElementById('revives'),
   hpText: document.getElementById('hpText'),
-  hpMaxText: document.getElementById('hpMaxText'),
   hpbar: document.getElementById('hpbarFill'),
   shieldText: document.getElementById('shieldText'),
-  shieldMaxText: document.getElementById('shieldMaxText'),
-  shieldFill: document.getElementById('shieldFill'),
+  avatarLevel: document.getElementById('avatarLevel'),
   expFill: document.getElementById('expFill'),
   expText: document.getElementById('expText'),
   levelNum: document.getElementById('levelNum'),
@@ -2137,17 +2164,31 @@ function refreshHUD() {
   // 生命
   const hp = Math.max(0, gameState.hp);
   if (ui.hpText) ui.hpText.textContent = Math.floor(hp);
-  if (ui.hpMaxText) ui.hpMaxText.textContent = upgrades.maxHp;
   const hpPct = hp / Math.max(1, upgrades.maxHp) * 100;
-  if (ui.hpbar) ui.hpbar.style.width = hpPct + '%';
-  // 护盾
+  if (ui.hpbar) ui.hpbar.style.width = Math.floor(hpPct / 100 * 288) + 'px';
+  // 护盾（分段式）
   const sh = Math.max(0, gameState.shield);
   if (ui.shieldText) ui.shieldText.textContent = Math.floor(sh);
-  if (ui.shieldMaxText) ui.shieldMaxText.textContent = gameState.maxShield;
-  const shPct = sh / Math.max(1, gameState.maxShield) * 100;
-  if (ui.shieldFill) ui.shieldFill.style.width = shPct + '%';
+  const shRatio = sh / Math.max(1, gameState.maxShield);
+  const segs = [document.getElementById('shieldSeg1'), document.getElementById('shieldSeg2'),
+                document.getElementById('shieldSeg3'), document.getElementById('shieldSeg4')];
+  const segCount = 4;
+  for (let si = 0; si < segCount; si++) {
+    if (!segs[si]) continue;
+    const segStart = si / segCount;
+    const segEnd = (si + 1) / segCount;
+    // 蓝色填充
+    if (shRatio >= segEnd) {
+      segs[si].style.width = '100%';
+    } else if (shRatio <= segStart) {
+      segs[si].style.width = '0%';
+    } else {
+      segs[si].style.width = ((shRatio - segStart) / (segEnd - segStart) * 100) + '%';
+    }
+  }
+  // 头像等级
+  if (ui.avatarLevel) ui.avatarLevel.textContent = gameState.level;
   // 经验
-  if (ui.levelNum) ui.levelNum.textContent = gameState.level;
   if (ui.expText) ui.expText.textContent = `${gameState.exp}/${gameState.expNext}`;
   if (ui.expFill) ui.expFill.style.width = (gameState.exp / gameState.expNext * 100) + '%';
   // 武器信息
@@ -4896,46 +4937,30 @@ function loop() {
 }
 
 /* ================= 雷达 ================= */
-const radarCanvas = document.getElementById('radar');
+const radarCanvas = document.getElementById('radarCanvas');
 const radarCtx = radarCanvas.getContext('2d');
-const RADAR_SIZE = 180;
+const RADAR_SIZE = 216;
 const RADAR_R = RADAR_SIZE / 2 - 4;
-let radarSweep = 0;
 
 function drawRadar() {
   const ctx = radarCtx;
   const cx = RADAR_SIZE / 2, cy = RADAR_SIZE / 2;
   ctx.clearRect(0, 0, RADAR_SIZE, RADAR_SIZE);
 
-  // 同心圆
-  ctx.strokeStyle = 'rgba(80,139,243,0.18)';
-  ctx.lineWidth = 1;
-  for (let i=1; i<=3; i++) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, RADAR_R * (i/3), 0, Math.PI*2);
-    ctx.stroke();
-  }
+  // 只保留最外圈
+  ctx.strokeStyle = 'rgba(88,111,126,0.4)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, RADAR_R, 0, Math.PI*2);
+  ctx.stroke();
+
   // 十字线
+  ctx.strokeStyle = 'rgba(88,111,126,0.2)';
+  ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(cx-RADAR_R, cy); ctx.lineTo(cx+RADAR_R, cy);
   ctx.moveTo(cx, cy-RADAR_R); ctx.lineTo(cx, cy+RADAR_R);
   ctx.stroke();
-
-  // 扫描线
-  radarSweep += 0.04;
-  const sweepGrad = ctx.createConicGradient
-    ? ctx.createConicGradient(radarSweep, cx, cy)
-    : null;
-  if (sweepGrad) {
-    sweepGrad.addColorStop(0, 'rgba(80,139,243,0.0)');
-    sweepGrad.addColorStop(0.05, 'rgba(80,139,243,0.35)');
-    sweepGrad.addColorStop(0.15, 'rgba(80,139,243,0.0)');
-    sweepGrad.addColorStop(1, 'rgba(80,139,243,0.0)');
-    ctx.fillStyle = sweepGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, RADAR_R, 0, Math.PI*2);
-    ctx.fill();
-  }
 
   // 玩家朝向：取相机水平 forward 向量
   const fwd = new THREE.Vector3();
@@ -4969,8 +4994,6 @@ function drawRadar() {
     if (e.userData.isBoss) { color = '#dc2626'; size = 6; }
     // 飞行单位画三角，地面单位画方块
     ctx.fillStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 6;
     if (e.userData.fly) {
       ctx.beginPath();
       ctx.moveTo(cx+p.x, cy+p.y - size);
@@ -4981,7 +5004,6 @@ function drawRadar() {
     } else {
       ctx.fillRect(cx+p.x-size, cy+p.y-size, size*2, size*2);
     }
-    ctx.shadowBlur = 0;
   });
 
   // Boss 传送门路点（休整期 + 门已生成 + 非Boss阶段）
@@ -5001,8 +5023,6 @@ function drawRadar() {
     // 绘制钻石形路点
     const gs = 6;
     ctx.fillStyle = `rgba(239,68,68,${pulse})`;
-    ctx.shadowColor = '#ef4444';
-    ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.moveTo(cx+gpx, cy+gpy - gs);
     ctx.lineTo(cx+gpx + gs*0.7, cy+gpy);
@@ -5016,26 +5036,23 @@ function drawRadar() {
     ctx.beginPath();
     ctx.arc(cx+gpx, cy+gpy, gs+3, 0, Math.PI*2);
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }
 
-  // 玩家（中心）
-  ctx.fillStyle = '#508BF3';
-  ctx.beginPath();
-  ctx.arc(cx, cy, 4, 0, Math.PI*2);
-  ctx.fill();
-  // 朝向（永远朝上）
-  ctx.strokeStyle = '#508BF3';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(cx, cy - 10);
-  ctx.stroke();
+
   // 视野扇形
-  ctx.fillStyle = 'rgba(80,139,243,0.10)';
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
   ctx.beginPath();
   ctx.moveTo(cx, cy);
   ctx.arc(cx, cy, RADAR_R, -Math.PI/2 - 0.5, -Math.PI/2 + 0.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // 中心玩家标记（三角箭头）
+  ctx.fillStyle = '#DAE3E5';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 8);
+  ctx.lineTo(cx - 5, cy + 4);
+  ctx.lineTo(cx + 5, cy + 4);
   ctx.closePath();
   ctx.fill();
 }

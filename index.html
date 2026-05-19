@@ -869,7 +869,7 @@ const CONFIG = {
   bossUnlockWave:  12,   // 第几波开始出现 Boss 门（可提前挑战）
   maxRevives:      5,    // 阶段一最大复活次数
   // —— 等级 —— 
-  expBase:         64,   // 升到 2 级所需经验（80×0.8）
+  expBase:         16,   // 升到 2 级所需经验（一局约升到Lv24）
   expGrowth:       1.18, // 每级所需经验倍率（平滑增长）
   expPerKillBase:  10,   // 普通敌人击杀经验（实际还会乘以敌人价值系数）
   // —— 雷达 —— 
@@ -2269,13 +2269,23 @@ function onWaveClear(isMajor) {
 const restEl = document.getElementById('restPanel');
 const restTimerEl = document.getElementById('restTimer');
 function startRest() {
+  // 强制清除所有残留怪物
+  for (let i = enemies.length - 1; i >= 0; i--) scene.remove(enemies[i]);
+  enemies.length = 0;
+  // 清除scene中可能残留的怪物对象
+  for (let i = scene.children.length - 1; i >= 0; i--) {
+    const c = scene.children[i];
+    if (c.userData && c.userData.type && c.userData.type !== 'finalboss') scene.remove(c);
+  }
   gameState.resting = true;
   gameState.restTimer = CONFIG.restDuration;
   restEl.classList.add('show');
-  // 关键波结束 -> 存活成功
-  setMsg('存活成功', 2200, '#22c55e');
-  Audio.beep({ freq:660, type:'sine', duration:0.15, volume:0.25 });
-  setTimeout(()=>Audio.beep({ freq:990, type:'sine', duration:0.2, volume:0.25 }), 160);
+  // 关键波结束 -> 存活成功（进入Boss阶段时不播）
+  if (!gameState.bossPhase) {
+    setMsg('存活成功', 2200, '#22c55e');
+    Audio.beep({ freq:660, type:'sine', duration:0.15, volume:0.25 });
+    setTimeout(()=>Audio.beep({ freq:990, type:'sine', duration:0.2, volume:0.25 }), 160);
+  }
   // 有待选增援时强调提示
   if (allianceState.pendingPicks > 0) {
     pickPromptEl.classList.add('emphasize');
@@ -2322,7 +2332,9 @@ function endRest() {
   }
 }
 function nextWave() {
-  // 普通波次推进：不弹提示
+  // 清除残留怪物
+  for (let i = enemies.length - 1; i >= 0; i--) scene.remove(enemies[i]);
+  enemies.length = 0;
   startNextWave();
 }
 function startNextWave() {
@@ -2569,6 +2581,18 @@ function pickAlliance(opt) {
       if (newTier === 1 || newTier === 3) allianceState.droneMax += 1;
       else if (newTier === 7) allianceState.droneMax += 2;
       else if (newTier === 8) allianceState.droneMax *= 2;
+      // 获得时立即召唤一架无人机
+      if (newTier === 1) {
+        setTimeout(() => {
+          const dChain = ALLIANCE.tactical[2];
+          const dDmg = dChain.baseDmg * 1 * allianceState.skillDmgMul * upgrades.dmgMul;
+          const dGolden = dChain.tiers[0]?.golden;
+          const dColor = dGolden ? 0xfde047 : parseInt(dChain.color.replace('#',''), 16);
+          spawnDrone(dColor, 1, dDmg, dGolden);
+          spawnSummonBeam(player.pos.clone(), dColor, dGolden);
+          showFloat('🚁 无人机部署!', dGolden ? '#fde047' : '#60a5fa');
+        }, 500);
+      }
     }
     // 应用 destroyer（毁灭者）链的炮台上限增益
     if (ci === 1) {
@@ -3847,8 +3871,8 @@ function buildWaveQueue(wave) {
   const growthFactor = 1.15;
   let totalCount = Math.floor(baseCount * Math.pow(growthFactor, wave - 1));
   if (wave <= 8) totalCount = Math.floor(totalCount * 1.5);
-  // 上限200只，避免后期卡顿
-  totalCount = Math.min(totalCount, 200);
+  // 上限180只，避免后期卡顿
+  totalCount = Math.min(totalCount, 180);
 
   for (let i = 0; i < totalCount; i++) {
     const rnd = Math.random();
@@ -3889,6 +3913,8 @@ function enterBossPhase() {
   gameState.bossPhase = true;
   gameState.waveBudget = 0;
   gameState.waveSpawned = 0;
+  // 清除"存活成功"等提示
+  ui.msg.classList.remove('show');
   // 清场残留小怪
   enemies.slice().forEach(e => { scene.remove(e); });
   enemies.length = 0;
@@ -4563,23 +4589,26 @@ function update(dt) {
         gameState.waveSpawned++;
       }
     }
-  } else if (enemies.length === 0) {
+  } else {
+    // 所有怪已刷完，等待清场
     gameState.waveClearWait += dt;
-    const waveGap = 3;
-    const remaining = waveGap - gameState.waveClearWait;
-    if (remaining > 0 && remaining <= 4 && !gameState._waveGapNotified) {
-      gameState._waveGapNotified = true;
-      gameState.gold += 30;
-      showFloat('+30 金 通关奖励', '#fbbf24');
-      onWaveClear(CONFIG.restEveryNWaves > 0 && gameState.wave % CONFIG.restEveryNWaves === 0);
-    }
-    if (gameState.waveClearWait > waveGap) {
-      gameState._waveGapNotified = false;
-      const isMajor = CONFIG.restEveryNWaves > 0 && gameState.wave % CONFIG.restEveryNWaves === 0;
-      if (isMajor) {
-        startRest();
-      } else {
-        nextWave();
+    if (enemies.length === 0) {
+      const waveGap = 3;
+      const remaining = waveGap - gameState.waveClearWait;
+      if (remaining > 0 && remaining <= 4 && !gameState._waveGapNotified) {
+        gameState._waveGapNotified = true;
+        gameState.gold += 30;
+        showFloat('+30 金 通关奖励', '#fbbf24');
+        onWaveClear(CONFIG.restEveryNWaves > 0 && gameState.wave % CONFIG.restEveryNWaves === 0);
+      }
+      if (gameState.waveClearWait > waveGap) {
+        gameState._waveGapNotified = false;
+        const isMajor = CONFIG.restEveryNWaves > 0 && gameState.wave % CONFIG.restEveryNWaves === 0;
+        if (isMajor) {
+          startRest();
+        } else {
+          nextWave();
+        }
       }
     }
   }
@@ -4724,7 +4753,7 @@ function update(dt) {
     const reach = 0.9 + ud.size*0.4 + player.radius;
     if (distToPlayer < reach) {
       if (CONFIG.godMode) {
-        if (!ud.isBoss) { explode(e.position, false); scene.remove(e); enemies.splice(i,1); }
+        if (!ud.isBoss) { ud.alive = false; explode(e.position, false); scene.remove(e); enemies.splice(i,1); }
         continue;
       }
       // 自爆丧尸：大范围爆炸
@@ -4764,6 +4793,7 @@ function update(dt) {
             damageEnemy(other, eDmg);
           }
         }
+        e.userData.alive = false;
         scene.remove(e); enemies.splice(i,1);
         flashDamage(); refreshHUD();
         if (gameState.hp <= 0) { gameOver(); return; }
@@ -4784,6 +4814,7 @@ function update(dt) {
         refreshHUD();
         if (gameState.hp <= 0) { gameOver(); return; }
       } else {
+        e.userData.alive = false;
         explode(e.position, false); scene.remove(e); enemies.splice(i,1);
         flashDamage();
         refreshHUD();
